@@ -65,9 +65,37 @@ public class Client {
                 }
             });
 
-        } else if (msg.startsWith("ROOM_PLAYERS")) {  // THÊM: Xử lý danh sách đầy đủ người chơi
+//        } else if (msg.startsWith("ROOM_PLAYERS")) {  // THÊM: Xử lý danh sách đầy đủ người chơi
+//            // Parse: ROOM_PLAYERS:username1,score1;username2,score2;...
+//            String playerData = msg.substring("ROOM_PLAYERS:".length());  // Cắt prefix
+//            String[] pairs = playerData.split(";");
+//            List<String[]> players = new ArrayList<>();
+//            for (String pair : pairs) {
+//                if (pair.trim().isEmpty()) continue;
+//                String[] userScore = pair.split(",");
+//                if (userScore.length == 2) {
+//                    players.add(new String[]{userScore[0], userScore[1]});
+//                }
+//            }
+//            SwingUtilities.invokeLater(() -> {
+//                for (ScoreListener l : listeners) {
+//                    // Gọi onRoomPlayerList nếu listener hỗ trợ (cast hoặc thêm vào interface)
+//                    if (l instanceof RoomOptionsPanel) {  // Giả định RoomOptionsPanel implement
+//                        ((RoomOptionsPanel) l).onRoomPlayerList(players);
+//                    }
+//                }
+//            });
+//        } else if (msg.startsWith("START_GAME")) {  // THÊM: Nhận lệnh bắt đầu game
+//            SwingUtilities.invokeLater(() -> {
+//                for (ScoreListener l : listeners) {
+//                    if (l instanceof RoomOptionsPanel) {
+//                        ((RoomOptionsPanel) l).onStartGame();  // Chuyển sang GamePanel
+//                    }
+//                }
+//            });
+            } else if (msg.startsWith("ROOM_PLAYERS")) {  // SỬA: Xử lý danh sách đầy đủ
             // Parse: ROOM_PLAYERS:username1,score1;username2,score2;...
-            String playerData = msg.substring("ROOM_PLAYERS:".length());  // Cắt prefix
+            String playerData = msg.substring("ROOM_PLAYERS:".length());
             String[] pairs = playerData.split(";");
             List<String[]> players = new ArrayList<>();
             for (String pair : pairs) {
@@ -79,13 +107,26 @@ public class Client {
             }
             SwingUtilities.invokeLater(() -> {
                 for (ScoreListener l : listeners) {
-                    // Gọi onRoomPlayerList nếu listener hỗ trợ (cast hoặc thêm vào interface)
-                    if (l instanceof RoomOptionsPanel) {  // Giả định RoomOptionsPanel implement
+                    // SỬA: Sử dụng instanceof để tránh cast error
+                    if (l instanceof RoomOptionsPanel) {
                         ((RoomOptionsPanel) l).onRoomPlayerList(players);
+                    } else if (l instanceof GamePanel) {
+                        ((GamePanel) l).onRoomPlayerList(players);
                     }
                 }
             });
 
+        } else if (msg.startsWith("START_GAME")) {  // SỬA: Nhận lệnh bắt đầu game
+            SwingUtilities.invokeLater(() -> {
+                for (ScoreListener l : listeners) {
+                    // SỬA: Sử dụng instanceof để tránh cast error
+                    if (l instanceof RoomOptionsPanel) {
+                        ((RoomOptionsPanel) l).onStartGame();
+                    } else if (l instanceof GamePanel) {
+                        ((GamePanel) l).onStartGame();
+                    }
+                }
+            });
         } else if (msg.startsWith("PLAYER")) {  // GIỮ NGUYÊN: Xử lý cũ nếu cần
             // PLAYER:username:score
             String[] parts = msg.split(":");

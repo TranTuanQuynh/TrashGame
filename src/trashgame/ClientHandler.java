@@ -15,6 +15,10 @@ public class ClientHandler extends Thread {
     public ClientHandler(Socket socket) {
         this.socket = socket;
     }
+    
+    public String getUsername() {
+        return username;
+    }
 
     @Override
     public void run() {
@@ -52,7 +56,27 @@ public class ClientHandler extends Thread {
                 DBConnection.addPlayerToRoom(roomID, userId, username);
                 Server.addToRoom(roomID, this);  // SỬA: Gọi addToRoom (đã có broadcast bên trong)
                 break;
+            case "READY":
+                username = parts[1];  // READY:username
+                Server.updateReadyStatus(roomID, username, true);
+                break;
 
+            case "UNREADY":
+                username = parts[1];  // UNREADY:username
+                Server.updateReadyStatus(roomID, username, false);
+                break;
+
+            // THÊM: Xử lý SCORE (nếu chưa có)
+            case "SCORE":
+                int score = Integer.parseInt(parts[1]);  // SCORE:score
+                // Cập nhật DB
+                int roomNumericId = DBConnection.getRoomIdByCode(roomID);  // Giả định bạn có hàm này
+                if (roomNumericId != -1) {
+                    DBConnection.updatePlayerScore(roomNumericId, userId, score);
+                }
+                // Broadcast update
+                Server.broadcastRoomPlayers(roomID);  // Cập nhật danh sách score
+                break;
             default:
                 System.out.println("⚠️ Lệnh chưa hỗ trợ: " + command);
         }

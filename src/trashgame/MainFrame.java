@@ -50,7 +50,17 @@ public class MainFrame extends JFrame {
         // mặc định hiển thị login
         cardLayout.show(cards, CARD_LOGIN);
     }
-
+    // Trong MainFrame.java, thêm phương thức
+    public void startMultiplayerGame() {
+        if (gamePanel != null) {
+            cards.remove(gamePanel);
+            gamePanel = null;
+        }
+        gamePanel = new GamePanel(this);  // GamePanel sẽ đăng ký listener tự động
+        cards.add(gamePanel, CARD_GAME);
+        cardLayout.show(cards, CARD_GAME);
+        gamePanel.requestFocusInWindow();
+    }
     // --- setters/getters cho user và client (gọi từ LoginPanel khi login thành công) ---
     public void setCurrentUser(int user_id) {
         this.currentUserId = user_id;

@@ -121,10 +121,10 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
         });
     }
     
-    // THÊM: Nhận lệnh bắt đầu game
-//    public void onStartGame() {
-//        SwingUtilities.invokeLater(() -> {
-//            parent.startMultiplayerGame();  // Giả định MainFrame có phương thức này để chuyển sang GamePanel
-//        });
-//    }
+     //THÊM: Nhận lệnh bắt đầu game
+    public void onStartGame() {
+        SwingUtilities.invokeLater(() -> {
+            parent.startMultiplayerGame();  // Giả định MainFrame có phương thức này để chuyển sang GamePanel
+        });
+    }
 }

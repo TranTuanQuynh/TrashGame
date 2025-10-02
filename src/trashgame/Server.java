@@ -33,8 +33,8 @@ public class Server {
         rooms.get(roomID).add(client);
         
         // Khởi tạo ready status cho phòng mới
-//        readyStatus.putIfAbsent(roomID, new ConcurrentHashMap<>());
-//        readyStatus.get(roomID).put(client.username, false);  // Ban đầu chưa ready
+        readyStatus.putIfAbsent(roomID, new ConcurrentHashMap<>());
+        readyStatus.get(roomID).put(client.getUsername(), false);  // Ban đầu chưa ready
         // THÊM: Broadcast danh sách người chơi sau khi thêm (để đồng bộ UI cho tất cả client)
         broadcastRoomPlayers(roomID);
     }
@@ -63,5 +63,33 @@ public class Server {
         for (ClientHandler c : clients) {
             c.sendMessage(message);
         }
+    }
+    public static void updateReadyStatus(String roomID, String username, boolean ready) {
+        Map<String, Boolean> status = readyStatus.get(roomID);
+        if (status != null) {
+            status.put(username, ready);
+
+            // Kiểm tra tất cả ready
+            boolean allReady = status.values().stream().allMatch(b -> b);
+            List<ClientHandler> clients = rooms.get(roomID);
+            int totalPlayers = clients != null ? clients.size() : 0;
+
+            if (allReady && totalPlayers > 0) {
+                System.out.println("🚀 Tất cả người chơi trong phòng " + roomID + " đã ready! Bắt đầu game.");
+                // Broadcast START_GAME
+                for (ClientHandler c : clients) {
+                    c.sendMessage("START_GAME");
+                }
+                // Reset ready status cho ván mới nếu cần
+                status.clear();
+            } else {
+                System.out.println("⏳ Phòng " + roomID + ": " + countReady(status) + "/" + totalPlayers + " ready");
+            }
+        }
+    }
+
+    // THÊM: Helper đếm số ready
+    private static int countReady(Map<String, Boolean> status) {
+        return (int) status.values().stream().filter(b -> b).count();
     }
 }
