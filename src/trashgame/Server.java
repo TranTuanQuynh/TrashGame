@@ -64,6 +64,20 @@ public class Server {
             c.sendMessage(message);
         }
     }
+    
+    // Trong Server.java, thêm phương thức mới
+    public static void broadcastScoreUpdate(String roomID, String username, int score) {
+        List<ClientHandler> clients = rooms.get(roomID);
+        if (clients == null) return;
+
+        String message = "SCORE_UPDATE:" + username + ":" + score;
+        System.out.println("📊 Broadcast score update cho phòng " + roomID + ": " + message);
+
+        for (ClientHandler c : clients) {
+            c.sendMessage(message);
+        }
+    }
+    
     public static void updateReadyStatus(String roomID, String username, boolean ready) {
         Map<String, Boolean> status = readyStatus.get(roomID);
         if (status != null) {

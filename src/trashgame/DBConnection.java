@@ -56,12 +56,12 @@ public class DBConnection {
         }
         return -1;
     }
-    public static void updatePlayerScore(int roomId, int userId, int score) {
+    public static void updatePlayerScore(String roomId, int userId, int score) {
         String sql = "UPDATE room_players SET score = ? WHERE room_id = ? AND user_id = ?";
         try (Connection conn = connect();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, score);
-            stmt.setInt(2, roomId);
+            stmt.setString(2, roomId);
             stmt.setInt(3, userId);
             int rowsAffected = stmt.executeUpdate();
             if(rowsAffected>0){

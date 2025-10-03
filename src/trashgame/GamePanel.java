@@ -30,6 +30,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
     private DefaultTableModel scoreModel;
     
     private String username;
+    private int lastSentScore = 0;
     
     private int binSpacing = 10; // khoảng cách cố định giữa các thùng
 
@@ -54,21 +55,9 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
         
         timer = new Timer(20, this);//50FPS 
         timer.start();
-//        initScoreTable();
-//        parent.getClient().addScoreListener((ScoreListener) this);
+
     }
     
-//    private void initScoreTable() {
-//        JPanel rightPanel = new JPanel(new BorderLayout());
-//        JLabel scoreLabel = new JLabel("Điểm người chơi khác:");
-//        scoreModel = new DefaultTableModel(new Object[]{"Người chơi", "Điểm"}, 0);
-//        JTable scoreTable = new JTable(scoreModel);
-//        scoreTable.setPreferredScrollableViewportSize(new Dimension(150, 100));
-//        scoreTable.setFillsViewportHeight(true);
-//        rightPanel.add(scoreLabel, BorderLayout.NORTH);
-//        rightPanel.add(new JScrollPane(scoreTable), BorderLayout.CENTER);
-//        add(rightPanel, BorderLayout.EAST);  // Thêm bên phải màn hình game
-//    }
     private void initScoreTable() {
         JPanel rightPanel = new JPanel(new BorderLayout());
         JLabel scoreLabel = new JLabel("Điểm người chơi khác:");
@@ -87,21 +76,16 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
         // Thêm panel bên phải màn hình game
         add(rightPanel, BorderLayout.EAST);
     }
-//    public void onScoreUpdate(String username, int score) {
-//        // Cập nhật bảng score (tương tự updatePlayerTable)
-//        boolean found = false;
-//        for (int i = 0; i < scoreModel.getRowCount(); i++) {
-//            if (scoreModel.getValueAt(i, 0).equals(username) && !username.equals(this.username)) {  // Bỏ qua điểm của chính mình
-//                scoreModel.setValueAt(score, i, 1);
-//                found = true;
-//                break;
-//            }
-//        }
-//        if (!found && !username.equals(this.username)) {
-//            scoreModel.addRow(new Object[]{username, score});
-//        }
-//        repaint();  // Cập nhật UI game
-//    }
+    
+    private void sendScoreToServer() {
+        if (parent.getClient() != null && score > lastSentScore) {  // Chỉ gửi nếu điểm tăng (tránh spam)
+            parent.getClient().sendMessage("SCORE:" + score);
+            lastSentScore = score;
+            System.out.println("📤 Gửi điểm số: " + score + " cho server");
+        }
+    }
+    
+    @Override
     public void onScoreUpdate(String otherUsername, int otherScore) {
         // Cập nhật bảng score (chỉ cho người khác, không phải chính mình)
         boolean found = false;
@@ -131,7 +115,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
         // GamePanel đã sẵn sàng, không cần làm gì thêm
         System.out.println("Game started for " + username);
     }
-
+@Override
     public void onUserJoined(String username) {
         if (!username.equals(this.username)) {
             scoreModel.addRow(new Object[]{username, 0});
@@ -232,10 +216,13 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
                 boolean matched = false;
                 if (checkBinCollision(item, organicBin) && "organic".equals(item.getType())) {
                     score++; matched = true;
+                    sendScoreToServer();
                 } else if (checkBinCollision(item, inorganicBin) && "inorganic".equals(item.getType())) {
                     score++; matched = true;
+                    sendScoreToServer();
                 } else if (checkBinCollision(item, recyclableBin) && "recyclable".equals(item.getType())) {
                     score++; matched = true;
+                    sendScoreToServer();
                 }
 
                 if (!matched) {

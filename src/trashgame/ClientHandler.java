@@ -67,15 +67,25 @@ public class ClientHandler extends Thread {
                 break;
 
             // THÊM: Xử lý SCORE (nếu chưa có)
-            case "SCORE":
+//            case "SCORE":
+//                int score = Integer.parseInt(parts[1]);  // SCORE:score
+//                // Cập nhật DB
+//                int roomNumericId = DBConnection.getRoomIdByCode(roomID);  // Giả định bạn có hàm này
+//                if (roomNumericId != -1) {
+//                    DBConnection.updatePlayerScore(roomNumericId, userId, score);
+//                }
+//                // Broadcast update
+//                Server.broadcastRoomPlayers(roomID);  // Cập nhật danh sách score
+//                break;
+                case "SCORE":
                 int score = Integer.parseInt(parts[1]);  // SCORE:score
-                // Cập nhật DB
-                int roomNumericId = DBConnection.getRoomIdByCode(roomID);  // Giả định bạn có hàm này
-                if (roomNumericId != -1) {
-                    DBConnection.updatePlayerScore(roomNumericId, userId, score);
-                }
-                // Broadcast update
-                Server.broadcastRoomPlayers(roomID);  // Cập nhật danh sách score
+                System.out.println("🏆 " + username + " cập nhật điểm: " + score);  // THÊM: Log để debug
+                
+                // Cập nhật DB (sử dụng roomID string, giả định DBConnection.updatePlayerScore hỗ trợ string roomID)
+                DBConnection.updatePlayerScore(roomID, userId, score);  // SỬA: Truyền roomID (string) thay vì int
+                
+                // THÊM: Broadcast SCORE_UPDATE:username:score đến tất cả trong phòng (hiệu quả hơn full list)
+                Server.broadcastScoreUpdate(roomID, username, score);
                 break;
             default:
                 System.out.println("⚠️ Lệnh chưa hỗ trợ: " + command);
