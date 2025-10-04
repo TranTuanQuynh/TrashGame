@@ -216,13 +216,13 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
                 boolean matched = false;
                 if (checkBinCollision(item, organicBin) && "organic".equals(item.getType())) {
                     score++; matched = true;
-                    sendScoreToServer();
+                    sendScoreToServer(score);
                 } else if (checkBinCollision(item, inorganicBin) && "inorganic".equals(item.getType())) {
                     score++; matched = true;
-                    sendScoreToServer();
+                    sendScoreToServer(score);
                 } else if (checkBinCollision(item, recyclableBin) && "recyclable".equals(item.getType())) {
                     score++; matched = true;
-                    sendScoreToServer();
+                    sendScoreToServer(score);
                 }
 
                 if (!matched) {
@@ -240,30 +240,37 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
                 && item.getX() < bin.getX() + bin.getWidth();
     }
     
-    private void updateScoreInDB(int user_id, int score) {
-        String sql = "INSERT INTO scores (user_id,score,play_time) VALUES (?,?,CURRENT_TIMESTAMP)";
-
-        try (Connection conn = DBConnection.connect();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, user_id);
-            stmt.setInt(2, score);
-            stmt.executeUpdate();
-            System.out.println(stmt.toString());
-            System.out.println("✅ Điểm số đã được lưu cho " + user_id);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+//    private void updateScoreInDB(int user_id, int score) {
+//        String sql = "INSERT INTO scores (user_id,score,play_time) VALUES (?,?,CURRENT_TIMESTAMP)";
+//
+//        try (Connection conn = DBConnection.connect();
+//             PreparedStatement stmt = conn.prepareStatement(sql)) {
+//            stmt.setInt(1, user_id);
+//            stmt.setInt(2, score);
+//            stmt.executeUpdate();
+//            System.out.println(stmt.toString());
+//            System.out.println("✅ Điểm số đã được lưu cho " + user_id);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     private void endGame() {
         gameOver = true;
         if (timer != null) timer.stop();
         // cập nhật điểm số vào DB
-        updateScoreInDB(parent.getCurrentUser(), score);
         if (parent.getClient() != null) {
-            parent.getClient().sendMessage("SCORE:" + score);
-        }
+            parent.getClient().sendMessage("SCORE:" + score);  // Server sẽ lưu DB
+            System.out.println("📤 Gửi score cuối: " + score + " qua server");
+        } 
         SwingUtilities.invokeLater(() -> parent.showControlPanel(score));
+    }
+    
+    private void sendScoreToServer(int newScore) {
+        if (parent.getClient() != null) {
+            parent.getClient().sendMessage("SCORE:" + newScore);
+            System.out.println("📤 Gửi score thời gian thực: " + newScore);
+        }
     }
 
     // move toàn block thùng sao cho giữ khoảng cách cố định và không ra ngoài màn

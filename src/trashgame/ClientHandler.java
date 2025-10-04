@@ -3,6 +3,7 @@ package trashgame;
 
 import java.io.*;
 import java.net.*;
+import java.util.List;
 
 public class ClientHandler extends Thread {
     private Socket socket;
@@ -61,7 +62,15 @@ public class ClientHandler extends Thread {
                 } else {
                     out.println("REGISTER_FAIL:Username đã tồn tại hoặc lỗi DB");
                 }
-                break;    
+                break;   
+            case "LEADERBOARD":
+                List<String[]> leaderboard = DBConnection.getLeaderboard();  // Server gọi DB
+                StringBuilder sb = new StringBuilder("LEADERBOARD:");
+                for (String[] row : leaderboard) {
+                    sb.append(row[0]).append(":").append(row[1]).append(";");
+                }
+                out.println(sb.toString());
+                break;
             case "CREATE_ROOM":
                 roomID = parts[1];
                 userId = Integer.parseInt(parts[2]);

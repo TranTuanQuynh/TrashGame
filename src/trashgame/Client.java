@@ -23,6 +23,7 @@ public class Client {
 
     // THÊM: Callback cho register (nếu cần)
     private RegisterCallback registerCallback;
+    private LeaderboardCallback leaderboardCallback;
 
     public Client(String host, int port) throws IOException {
         this.socket = new Socket(host, port);
@@ -46,7 +47,9 @@ public class Client {
     public void setLoginCallback(LoginCallback callback) {
         this.loginCallback = callback;
     }
-
+    public void setLeaderboardCallback(LeaderboardCallback callback) {
+        this.leaderboardCallback = callback;
+    }
     // THÊM: Set callback cho register
     public void setRegisterCallback(RegisterCallback callback) {
         this.registerCallback = callback;
@@ -69,7 +72,16 @@ public class Client {
     public void sendRegister(String username, String password) {
         sendMessage("REGISTER:" + username + ":" + password);
     }
+    // THÊM: Gửi yêu cầu leaderboard
+    public void sendLeaderboardRequest() {
+        sendMessage("LEADERBOARD");
+    }
 
+    // THÊM: Interface callback cho leaderboard
+    public interface LeaderboardCallback {
+        void onLeaderboardReceived(List<String[]> leaderboard);
+        void onLeaderboardFail(String error);
+    }
     // THÊM: Interface callback cho login
     public interface LoginCallback {
         void onLoginSuccess(int userId, String username);
@@ -121,7 +133,32 @@ public class Client {
                 }
                 System.out.println("❌ Register thất bại: " + error);
             });
+        } else if (msg.startsWith("LEADERBOARD")) {  // THÊM: Xử lý leaderboard từ server
+            String leaderboardData = msg.substring("LEADERBOARD:".length());
+            String[] rows = leaderboardData.split(";");
+            List<String[]> leaderboard = new ArrayList<>();
+            for (String row : rows) {
+                if (row.trim().isEmpty()) continue;
+                String[] userScore = row.split(":");
+                if (userScore.length == 2) {
+                    leaderboard.add(new String[]{userScore[0], userScore[1]});
+                }
+            }
+            SwingUtilities.invokeLater(() -> {
+                if (leaderboardCallback != null) {
+                    leaderboardCallback.onLeaderboardReceived(leaderboard);
+                }
+                System.out.println("✅ Nhận leaderboard: " + leaderboard.size() + " kết quả");
+            });
 
+        } else if (msg.startsWith("LEADERBOARD_FAIL")) {  // THÊM: Xử lý lỗi leaderboard
+            String error = msg.substring("LEADERBOARD_FAIL:".length());
+            SwingUtilities.invokeLater(() -> {
+                if (leaderboardCallback != null) {
+                    leaderboardCallback.onLeaderboardFail(error);
+                }
+                System.out.println("❌ Lỗi leaderboard: " + error);
+            });
         } else if (msg.startsWith("USER_JOINED")) {
             String user = msg.split(":")[1];
             SwingUtilities.invokeLater(() -> {
