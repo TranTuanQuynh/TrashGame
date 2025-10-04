@@ -41,6 +41,27 @@ public class ClientHandler extends Thread {
         String command = parts[0];
 
         switch (command) {
+            case "LOGIN":
+                String loginUsername = parts[1];
+                String password = parts[2];
+                int loginUserId = DBConnection.loginUser(loginUsername, password);  // Kiểm tra DB trên server
+                if (loginUserId != -1) {
+                    out.println("LOGIN_SUCCESS:" + loginUserId);  // Trả thành công
+                    System.out.println("✅ Server xác thực " + loginUsername + " thành công");
+                } else {
+                    out.println("LOGIN_FAIL");  // Trả thất bại
+                    System.out.println("❌ Server từ chối login cho " + loginUsername);
+                }
+                break;
+            case "REGISTER":
+                String regUsername = parts[1];
+                String regPassword = parts[2];
+                if (DBConnection.registerUser(regUsername, regPassword)) {  // Gọi hàm register trên server
+                    out.println("REGISTER_SUCCESS:" + regUsername);
+                } else {
+                    out.println("REGISTER_FAIL:Username đã tồn tại hoặc lỗi DB");
+                }
+                break;    
             case "CREATE_ROOM":
                 roomID = parts[1];
                 userId = Integer.parseInt(parts[2]);
@@ -66,25 +87,11 @@ public class ClientHandler extends Thread {
                 Server.updateReadyStatus(roomID, username, false);
                 break;
 
-            // THÊM: Xử lý SCORE (nếu chưa có)
-//            case "SCORE":
-//                int score = Integer.parseInt(parts[1]);  // SCORE:score
-//                // Cập nhật DB
-//                int roomNumericId = DBConnection.getRoomIdByCode(roomID);  // Giả định bạn có hàm này
-//                if (roomNumericId != -1) {
-//                    DBConnection.updatePlayerScore(roomNumericId, userId, score);
-//                }
-//                // Broadcast update
-//                Server.broadcastRoomPlayers(roomID);  // Cập nhật danh sách score
-//                break;
                 case "SCORE":
                 int score = Integer.parseInt(parts[1]);  // SCORE:score
-                System.out.println("🏆 " + username + " cập nhật điểm: " + score);  // THÊM: Log để debug
-                
-                // Cập nhật DB (sử dụng roomID string, giả định DBConnection.updatePlayerScore hỗ trợ string roomID)
-                DBConnection.updatePlayerScore(roomID, userId, score);  // SỬA: Truyền roomID (string) thay vì int
-                
-                // THÊM: Broadcast SCORE_UPDATE:username:score đến tất cả trong phòng (hiệu quả hơn full list)
+                System.out.println("🏆 " + username + " cập nhật điểm: " + score);  
+
+                DBConnection.updatePlayerScore(roomID, userId, score);  
                 Server.broadcastScoreUpdate(roomID, username, score);
                 break;
             default:

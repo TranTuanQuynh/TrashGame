@@ -18,6 +18,12 @@ public class Client {
     // Danh sách listener để UI (RoomOptionsPanel, GamePanel) đăng ký
     private final List<ScoreListener> listeners = new CopyOnWriteArrayList<>();
 
+    // THÊM: Callback cho login (để LoginPanel nhận phản hồi từ server)
+    private LoginCallback loginCallback;
+
+    // THÊM: Callback cho register (nếu cần)
+    private RegisterCallback registerCallback;
+
     public Client(String host, int port) throws IOException {
         this.socket = new Socket(host, port);
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -36,6 +42,16 @@ public class Client {
         }).start();
     }
 
+    // THÊM: Set callback cho login
+    public void setLoginCallback(LoginCallback callback) {
+        this.loginCallback = callback;
+    }
+
+    // THÊM: Set callback cho register
+    public void setRegisterCallback(RegisterCallback callback) {
+        this.registerCallback = callback;
+    }
+
     // Thêm/xóa listener
     public void addScoreListener(ScoreListener l) { listeners.add(l); }
     public void removeScoreListener(ScoreListener l) { listeners.remove(l); }
@@ -44,10 +60,69 @@ public class Client {
     public void sendMessage(String msg) {
         out.println(msg);
     }
+    
+    public void sendLogin(String username, String password) {
+        this.username = username;  // SỬA: Lưu username tạm thời để dùng sau
+        sendMessage("LOGIN:" + username + ":" + password);
+    }
+    
+    public void sendRegister(String username, String password) {
+        sendMessage("REGISTER:" + username + ":" + password);
+    }
+
+    // THÊM: Interface callback cho login
+    public interface LoginCallback {
+        void onLoginSuccess(int userId, String username);
+        void onLoginFail();
+    }
+
+    // THÊM: Interface callback cho register
+    public interface RegisterCallback {
+        void onRegisterSuccess(String username);
+        void onRegisterFail(String error);
+    }
 
     // Xử lý tin nhắn từ server
     private void handleMessage(String msg) {
-        if (msg.startsWith("USER_JOINED")) {
+        if (msg.startsWith("LOGIN_SUCCESS")) {
+            String[] parts = msg.split(":");
+            userId = Integer.parseInt(parts[1]);
+            SwingUtilities.invokeLater(() -> {
+                // THÊM: Gọi callback login success
+                if (loginCallback != null) {
+                    loginCallback.onLoginSuccess(userId, username);  // Sử dụng username đã lưu
+                }
+                System.out.println("✅ Login thành công, userId: " + userId);
+            });
+
+        } else if (msg.startsWith("LOGIN_FAIL")) {
+            SwingUtilities.invokeLater(() -> {
+                // THÊM: Gọi callback login fail
+                if (loginCallback != null) {
+                    loginCallback.onLoginFail();
+                }
+                System.out.println("❌ Login thất bại");
+            });
+
+        } else if (msg.startsWith("REGISTER_SUCCESS")) {
+            String regUsername = msg.split(":")[1];  // REGISTER_SUCCESS:username
+            SwingUtilities.invokeLater(() -> {
+                if (registerCallback != null) {
+                    registerCallback.onRegisterSuccess(regUsername);
+                }
+                System.out.println("✅ Register thành công cho " + regUsername);
+            });
+
+        } else if (msg.startsWith("REGISTER_FAIL")) {
+            String error = msg.substring("REGISTER_FAIL:".length());  // REGISTER_FAIL:error message
+            SwingUtilities.invokeLater(() -> {
+                if (registerCallback != null) {
+                    registerCallback.onRegisterFail(error);
+                }
+                System.out.println("❌ Register thất bại: " + error);
+            });
+
+        } else if (msg.startsWith("USER_JOINED")) {
             String user = msg.split(":")[1];
             SwingUtilities.invokeLater(() -> {
                 for (ScoreListener l : listeners) {
@@ -65,35 +140,7 @@ public class Client {
                 }
             });
 
-//        } else if (msg.startsWith("ROOM_PLAYERS")) {  // THÊM: Xử lý danh sách đầy đủ người chơi
-//            // Parse: ROOM_PLAYERS:username1,score1;username2,score2;...
-//            String playerData = msg.substring("ROOM_PLAYERS:".length());  // Cắt prefix
-//            String[] pairs = playerData.split(";");
-//            List<String[]> players = new ArrayList<>();
-//            for (String pair : pairs) {
-//                if (pair.trim().isEmpty()) continue;
-//                String[] userScore = pair.split(",");
-//                if (userScore.length == 2) {
-//                    players.add(new String[]{userScore[0], userScore[1]});
-//                }
-//            }
-//            SwingUtilities.invokeLater(() -> {
-//                for (ScoreListener l : listeners) {
-//                    // Gọi onRoomPlayerList nếu listener hỗ trợ (cast hoặc thêm vào interface)
-//                    if (l instanceof RoomOptionsPanel) {  // Giả định RoomOptionsPanel implement
-//                        ((RoomOptionsPanel) l).onRoomPlayerList(players);
-//                    }
-//                }
-//            });
-//        } else if (msg.startsWith("START_GAME")) {  // THÊM: Nhận lệnh bắt đầu game
-//            SwingUtilities.invokeLater(() -> {
-//                for (ScoreListener l : listeners) {
-//                    if (l instanceof RoomOptionsPanel) {
-//                        ((RoomOptionsPanel) l).onStartGame();  // Chuyển sang GamePanel
-//                    }
-//                }
-//            });
-            } else if (msg.startsWith("ROOM_PLAYERS")) {  // SỬA: Xử lý danh sách đầy đủ
+        } else if (msg.startsWith("ROOM_PLAYERS")) {  // SỬA: Xử lý danh sách đầy đủ
             // Parse: ROOM_PLAYERS:username1,score1;username2,score2;...
             String playerData = msg.substring("ROOM_PLAYERS:".length());
             String[] pairs = playerData.split(";");
@@ -127,6 +174,7 @@ public class Client {
                     }
                 }
             });
+
         } else if (msg.startsWith("PLAYER")) {  // GIỮ NGUYÊN: Xử lý cũ nếu cần
             // PLAYER:username:score
             String[] parts = msg.split(":");
