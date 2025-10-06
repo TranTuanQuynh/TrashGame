@@ -78,30 +78,55 @@ public class Server {
         }
     }
     
+//    public static void updateReadyStatus(String roomID, String username, boolean ready) {
+//        Map<String, Boolean> status = readyStatus.get(roomID);
+//        if (status != null) {
+//            status.put(username, ready);
+//
+//            // Kiểm tra tất cả ready
+//            boolean allReady = status.values().stream().allMatch(b -> b);
+//            List<ClientHandler> clients = rooms.get(roomID);
+//            int totalPlayers = clients != null ? clients.size() : 0;
+//
+//            if (allReady && totalPlayers > 0) {
+//                System.out.println("🚀 Tất cả người chơi trong phòng " + roomID + " đã ready! Bắt đầu game.");
+//                // Broadcast START_GAME
+//                for (ClientHandler c : clients) {
+//                    c.sendMessage("START_GAME");
+//                }
+//                // Reset ready status cho ván mới nếu cần
+//                status.clear();
+//            } else {
+//                System.out.println("⏳ Phòng " + roomID + ": " + countReady(status) + "/" + totalPlayers + " ready");
+//            }
+//        }
+//    }
     public static void updateReadyStatus(String roomID, String username, boolean ready) {
         Map<String, Boolean> status = readyStatus.get(roomID);
-        if (status != null) {
+        List<ClientHandler> clients = rooms.get(roomID);
+
+        if (status != null && clients != null) {
             status.put(username, ready);
 
-            // Kiểm tra tất cả ready
-            boolean allReady = status.values().stream().allMatch(b -> b);
-            List<ClientHandler> clients = rooms.get(roomID);
-            int totalPlayers = clients != null ? clients.size() : 0;
+            // Đếm số người ready
+            int readyCount = (int) status.values().stream().filter(b -> b).count();
+            int totalPlayers = clients.size();
 
-            if (allReady && totalPlayers > 0) {
-                System.out.println("🚀 Tất cả người chơi trong phòng " + roomID + " đã ready! Bắt đầu game.");
-                // Broadcast START_GAME
+            System.out.println("Phòng " + roomID + ": " + readyCount + "/" + totalPlayers + " ready");
+
+            // THÊM: Kiểm tra số lượng khớp
+            if (readyCount == totalPlayers && totalPlayers > 0 && status.size() == totalPlayers) {
+                System.out.println("Tất cả người chơi ready! Bắt đầu game.");
+
                 for (ClientHandler c : clients) {
                     c.sendMessage("START_GAME");
                 }
-                // Reset ready status cho ván mới nếu cần
+
+                // Reset ready status cho ván mới
                 status.clear();
-            } else {
-                System.out.println("⏳ Phòng " + roomID + ": " + countReady(status) + "/" + totalPlayers + " ready");
             }
         }
     }
-
     // THÊM: Helper đếm số ready
     private static int countReady(Map<String, Boolean> status) {
         return (int) status.values().stream().filter(b -> b).count();

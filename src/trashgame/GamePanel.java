@@ -193,6 +193,21 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
 
         repaint();
     }
+    // THÊM METHOD NÀY VÀO GamePanel
+    public void cleanup() {
+        if (timer != null && timer.isRunning()) {
+            timer.stop();
+            System.out.println("Dừng timer của GamePanel cũ");
+        }
+
+        // Remove listener để tránh nhận message từ server
+        if (parent.getClient() != null) {
+            parent.getClient().removeScoreListener(this);
+            System.out.println("Xóa ScoreListener của GamePanel cũ");
+        }
+
+        gameOver = true;
+    }
 
     private void checkCollisions() {
         java.util.List<TrashItem> toRemove = new java.util.ArrayList<>();
@@ -256,6 +271,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
 //    }
 
     private void endGame() {
+        if(gameOver) return;
         gameOver = true;
         if (timer != null) timer.stop();
         // cập nhật điểm số vào DB

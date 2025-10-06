@@ -86,6 +86,7 @@ public class ClientHandler extends Thread {
                 DBConnection.addPlayerToRoom(roomID, userId, username);
                 Server.addToRoom(roomID, this);  // SỬA: Gọi addToRoom (đã có broadcast bên trong)
                 break;
+            
             case "READY":
                 username = parts[1];  // READY:username
                 Server.updateReadyStatus(roomID, username, true);
@@ -96,12 +97,17 @@ public class ClientHandler extends Thread {
                 Server.updateReadyStatus(roomID, username, false);
                 break;
 
-                case "SCORE":
+            case "SCORE":
                 int score = Integer.parseInt(parts[1]);  // SCORE:score
                 System.out.println("🏆 " + username + " cập nhật điểm: " + score);  
 
                 DBConnection.updatePlayerScore(roomID, userId, score);  
                 Server.broadcastScoreUpdate(roomID, username, score);
+                break;
+            case "REFRESH_ROOM":
+                String roomID = parts[1];  // REFRESH_ROOM:roomID
+                System.out.println("🔄 Refresh phòng " + roomID + " (không insert)");
+                Server.broadcastRoomPlayers(roomID);  // Chỉ broadcast danh sách hiện tại từ DB
                 break;
             default:
                 System.out.println("⚠️ Lệnh chưa hỗ trợ: " + command);

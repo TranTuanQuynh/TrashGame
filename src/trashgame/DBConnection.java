@@ -217,59 +217,51 @@ public class DBConnection {
         }
     }
 
+//    }
 //    public static void addPlayerToRoom(String roomID, int userId, String username) {
-//        String insertPlayer = "INSERT INTO room_players (room_id, user_id, username, score) VALUES (?, ?, ?, 0)";
+//        String insertPlayer = "INSERT INTO room_players (room_id, user_id, score) VALUES (?, ?, 0)";
 //        try (Connection conn = connect();
 //             PreparedStatement stmt = conn.prepareStatement(insertPlayer)) {
 //            stmt.setString(1, roomID);
 //            stmt.setInt(2, userId);
-//            stmt.setString(3, username);
 //            int rowsAffected = stmt.executeUpdate();
-//            System.out.println("Thêm người chơi " + username + " vào phòng " + roomID + ": " + rowsAffected + " dòng");
-//        } catch (SQLException e) {
-//            System.err.println("❌ Lỗi addPlayerToRoom: " + e.getMessage());
+//            if(rowsAffected>0){
+//                System.out.println("✅ Người chơi tham gia phòng thành công ở hàm addPlayerToRoom: " + rowsAffected + " dòng");
+//            } else {
+//                System.out.println("⚠ Người chơi tham gia phòng không thành công ở hàm addPlayerToRoom");
+//            }
+//        } catch (Exception e) {
 //            e.printStackTrace();
 //        }
 //    }
+    
     public static void addPlayerToRoom(String roomID, int userId, String username) {
-        String insertPlayer = "INSERT INTO room_players (room_id, user_id, score) VALUES (?, ?, 0)";
+        // THÊM: Check tồn tại trước INSERT
+        String checkSql = "SELECT id FROM room_players WHERE room_id = ? AND user_id = ?";
+        String insertSql = "INSERT IGNORE INTO room_players (room_id, user_id, score) VALUES (?, ?, 0)";  // SỬA: INSERT IGNORE để bỏ qua nếu tồn tại
+
         try (Connection conn = connect();
-             PreparedStatement stmt = conn.prepareStatement(insertPlayer)) {
-            stmt.setString(1, roomID);
-            stmt.setInt(2, userId);
-            int rowsAffected = stmt.executeUpdate();
-            if(rowsAffected>0){
-                System.out.println("✅ Người chơi tham gia phòng thành công ở hàm addPlayerToRoom: " + rowsAffected + " dòng");
-            } else {
-                System.out.println("⚠ Người chơi tham gia phòng không thành công ở hàm addPlayerToRoom");
+             PreparedStatement checkStmt = conn.prepareStatement(checkSql);
+             PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+
+            checkStmt.setString(1, roomID);
+            checkStmt.setInt(2, userId);
+            ResultSet rs = checkStmt.executeQuery();
+            if (rs.next()) {
+                System.out.println("👤 Người chơi " + username + " đã tồn tại trong phòng " + roomID + " (không insert)");
+                return;  // Không insert nếu đã có
             }
-        } catch (Exception e) {
+
+            insertStmt.setString(1, roomID);
+            insertStmt.setInt(2, userId);
+            int rowsAffected = insertStmt.executeUpdate();
+            System.out.println("Thêm người chơi " + username + " vào phòng " + roomID + ": " + rowsAffected + " dòng");
+        } catch (SQLException e) {
+            System.err.println("❌ Lỗi addPlayerToRoom: " + e.getMessage());
             e.printStackTrace();
         }
     }
-
-
-//    public static List<String[]> getPlayersInRoom(String roomID) {
-//        List<String[]> players = new ArrayList<>();
-//        String sql = "SELECT u.username, rp.score " +
-//                     "FROM users u INNER JOIN room_players rp ON u.id = rp.user_id " +
-//                     "WHERE rp.room_id = ?";
-//        try (Connection conn = connect();
-//             PreparedStatement stmt = conn.prepareStatement(sql)) {
-//            stmt.setString(1, roomID);
-//            ResultSet rs = stmt.executeQuery();
-//            while (rs.next()) {
-//                String username = rs.getString("username");
-//                int score = rs.getInt("score");
-//                players.add(new String[]{username, String.valueOf(score)});
-//            }
-//            System.out.println("✅ Lấy " + players.size() + " người chơi trong phòng " + roomID);
-//        } catch (SQLException e) {
-//            System.err.println("❌ Lỗi getPlayersInRoom: " + e.getMessage());
-//            e.printStackTrace();
-//        }
-//        return players;
-//    }
+    
     public static List<String[]> getPlayersInRoom(String roomID) {
         List<String[]> players = new ArrayList<>();
         String sql = "SELECT u.username, rp.score FROM users u INNER JOIN room_players rp ON u.id = rp.user_id WHERE rp.room_id = ?";

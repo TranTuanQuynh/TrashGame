@@ -4,6 +4,7 @@ package trashgame;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.List;
 
 public class RoomOptionsPanel extends JPanel implements ScoreListener {
     private JButton createButton = new JButton("Tạo phòng");
@@ -30,6 +31,8 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
         this.client.addScoreListener(this);
 
         attachNetworkedActions();
+        
+        loadInitialRoom();
     }
 
     // --- khởi tạo UI ---
@@ -61,6 +64,8 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
             if (roomID != null && !roomID.trim().isEmpty()) {
                 // gửi yêu cầu tạo phòng
                 client.sendMessage("CREATE_ROOM:" + roomID + ":" + userId + ":" + username);
+                System.out.println ("Người chơi "+ username+ "tạo phòng "+ roomID);  // SỬA: In roomID thay vì userId
+                parent.setCurrentRoomID(roomID);
             }
         });
 
@@ -68,6 +73,8 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
             String roomID = JOptionPane.showInputDialog(this, "Nhập RoomID cần tham gia:");
             if (roomID != null && !roomID.trim().isEmpty()) {
                 client.sendMessage("JOIN_ROOM:" + roomID + ":" + userId + ":" + username);
+                System.out.println ("Người chơi "+ username+ "muốn tham gia phòng "+ roomID);  // SỬA: In roomID thay vì userId
+                parent.setCurrentRoomID(roomID);
             }
         });
         
@@ -86,18 +93,41 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
         });
     }
 
-    // cập nhật hoặc thêm dòng cho user
+    private void loadInitialRoom() {
+        tableModel.setRowCount(0);  // Clear bảng
+        tableModel.addRow(new Object[]{username, 0});  // Thêm chính mình
+        System.out.println("📊 Load phòng ban đầu: Chỉ có " + username);  // Log debug
+    }
+
+    // SỬA: Load phòng cũ - Gửi REFRESH_ROOM thay vì JOIN_ROOM (không INSERT duplicate)
+    public void loadPreviousRoom(String roomID) {
+        if (client != null) {
+            client.sendMessage("REFRESH_ROOM:" + roomID);  // SỬA: Gửi REFRESH_ROOM (không gửi userId/username để tránh insert)
+            parent.setCurrentRoomID(roomID);
+            System.out.println("🔄 Refresh phòng cũ: " + roomID + " (không insert duplicate)");
+        }
+    }
+
+    // THÊM: Load phòng rỗng ban đầu
+    private void loadEmptyRoom() {
+        tableModel.setRowCount(0);  // Clear bảng
+        tableModel.addRow(new Object[]{username, 0});  // Thêm chính mình
+    }
+
+    // SỬA: updatePlayerTable - Check duplicate trước khi add
     public void updatePlayerTable(String user, int score) {
         boolean found = false;
         for (int i = 0; i < tableModel.getRowCount(); i++) {
             if (tableModel.getValueAt(i, 0).equals(user)) {
                 tableModel.setValueAt(score, i, 1);
                 found = true;
+                System.out.println("🔄 Update điểm cho " + user + ": " + score);
                 break;
             }
         }
         if (!found) {
             tableModel.addRow(new Object[]{user, score});
+            System.out.println("➕ Thêm người chơi mới: " + user + " (" + score + ")");
         }
     }
 
@@ -112,12 +142,15 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
         updatePlayerTable(username, 0);
     }
 
-    public void onRoomPlayerList(java.util.List<String[]> players) {
+    // SỬA: onRoomPlayerList - Clear bảng trước khi load (tránh duplicate)
+    public void onRoomPlayerList(List<String[]> players) {
         SwingUtilities.invokeLater(() -> {
-            tableModel.setRowCount(0); // clear
+            System.out.println("🧹 Clear bảng cũ: " + tableModel.getRowCount() + " rows");  // Log debug
+            tableModel.setRowCount(0);  // SỬA: Clear trước khi load để tránh lặp
             for (String[] p : players) {
-                tableModel.addRow(new Object[]{p[0], p[1]});
+                updatePlayerTable(p[0], Integer.parseInt(p[1]));  // Sử dụng updatePlayerTable để check duplicate
             }
+            System.out.println("📊 Load mới: " + players.size() + " người");  // Log debug
         });
     }
     
