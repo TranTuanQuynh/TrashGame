@@ -131,65 +131,123 @@ public class DBConnection {
         }
         return -1;
     }
-
- 
-//    public static void updatePlayerScore(String roomID, int userId, int score) {
+//    public static void updatePlayerScore(String roomId, int userId, int score) {
 //        String sql = "UPDATE room_players SET score = ? WHERE room_id = ? AND user_id = ?";
+//        String insertscore = "INSERT INTO scores (user_id, score) VALUES (?,?)";
 //        try (Connection conn = connect();
-//             PreparedStatement stmt = conn.prepareStatement(sql)) {
+//             PreparedStatement stmt = conn.prepareStatement(sql);
+//                PreparedStatement stmt2 = conn.prepareStatement(insertscore)) {
 //            stmt.setInt(1, score);
-//            stmt.setString(2, roomID);  // roomID là string
+//            stmt.setString(2, roomId);
 //            stmt.setInt(3, userId);
-//            int rowsAffected = stmt.executeUpdate();
-//            System.out.println("✅ Cập nhật score cho user " + userId + " trong phòng " + roomID + ": " + rowsAffected + " dòng");
-//        } catch (SQLException e) {
-//            System.err.println("❌ Lỗi updatePlayerScore: " + e.getMessage());
+//            stmt2.setInt(1,userId);
+//            stmt2.setInt(2, score);
+//            int rowsAffected = 0;
+//            if(!roomId.isEmpty()) {
+//                rowsAffected = stmt.executeUpdate();
+//            }
+//            int rowsAffected2 = stmt2.executeUpdate();
+//            if(rowsAffected>0){
+//                System.out.println("✅ Cập nhật điểm thành công: " + rowsAffected + " dòng");
+//            } else {
+//                System.out.println("⚠️ Không có dòng nào được cập nhật");
+//            }
+//            if(rowsAffected2>0){
+//                System.out.println("✅ Cập nhật điểm ở bảng scores thành công: " + rowsAffected + " dòng");
+//            } else {
+//                System.out.println("⚠️ Không có dòng nào ở bảng scores được cập nhật");
+//            }
+//        } catch (Exception e) {
 //            e.printStackTrace();
 //        }
 //    }
+     // FIXED: Ham cap nhat diem
     public static void updatePlayerScore(String roomId, int userId, int score) {
-        String sql = "UPDATE room_players SET score = ? WHERE room_id = ? AND user_id = ?";
-        try (Connection conn = connect();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, score);
-            stmt.setString(2, roomId);
-            stmt.setInt(3, userId);
-            int rowsAffected = stmt.executeUpdate();
-            if(rowsAffected>0){
-                System.out.println("✅ Cập nhật điểm thành công: " + rowsAffected + " dòng");
-            } else {
-                System.out.println("⚠️ Không có dòng nào được cập nhật");
+        Connection conn = null;
+        try {
+            conn = connect();
+            if (conn == null) {
+                System.err.println("Cannot connect to database!");
+                return;
             }
-        } catch (Exception e) {
+            
+            // BUOC 0: Kiem tra user co ton tai khong
+            String checkUserSql = "SELECT id FROM users WHERE id = ?";
+            try (PreparedStatement checkStmt = conn.prepareStatement(checkUserSql)) {
+                checkStmt.setInt(1, userId);
+                ResultSet rs = checkStmt.executeQuery();
+                if (!rs.next()) {
+                    System.err.println("ERROR: userId=" + userId + " does NOT exist in users table!");
+                    System.err.println("Cannot save score for non-existent user. Please check your userId.");
+                    return;
+                }
+                System.out.println("User validation OK: userId=" + userId + " exists in database");
+            }
+            
+            // Bat dau transaction
+            conn.setAutoCommit(false);
+            
+            // 1. Cap nhat diem trong room_players (neu co roomId)
+            if (roomId != null && !roomId.trim().isEmpty()) {
+                String updateRoomSql = "UPDATE room_players SET score = ? WHERE room_id = ? AND user_id = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(updateRoomSql)) {
+                    stmt.setInt(1, score);
+                    stmt.setString(2, roomId);
+                    stmt.setInt(3, userId);
+                    int rowsAffected = stmt.executeUpdate();
+                    if (rowsAffected > 0) {
+                        System.out.println("Room score updated successfully: " + rowsAffected + " row(s)");
+                    } else {
+                        System.out.println("Warning: No rows updated in room_players (user may not be in room)");
+                    }
+                }
+            }
+            
+            // 2. Luu diem vao bang scores (play_time se tu dong dien NOW())
+            String insertScoreSql = "INSERT INTO scores (user_id, score, play_time) VALUES (?, ?, NOW())";
+            try (PreparedStatement stmt = conn.prepareStatement(insertScoreSql)) {
+                stmt.setInt(1, userId);
+                stmt.setInt(2, score);
+                int rowsAffected = stmt.executeUpdate();
+                if (rowsAffected > 0) {
+                    System.out.println("Score saved to scores table successfully: " + rowsAffected + " row(s)");
+                } else {
+                    System.out.println("Warning: No rows inserted in scores table");
+                }
+            }
+            
+            // Commit transaction
+            conn.commit();
+            System.out.println("=== TRANSACTION COMMITTED === Score update completed for userId=" + userId + ", score=" + score);
+            
+        } catch (SQLException e) {
+            System.err.println("=== SQL Error in updatePlayerScore ===");
+            System.err.println("Error message: " + e.getMessage());
+            System.err.println("userId attempted: " + userId);
+            System.err.println("score attempted: " + score);
+            System.err.println("roomId attempted: " + (roomId == null ? "NULL" : roomId));
             e.printStackTrace();
+            
+            // Rollback neu co loi
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                    System.err.println("Transaction rolled back due to error");
+                } catch (SQLException ex) {
+                    System.err.println("Rollback failed: " + ex.getMessage());
+                }
+            }
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
-
-//    public static void createRoom(String roomID, int userId, String username) {
-//        String insertRoom = "INSERT IGNORE INTO rooms (room_id) VALUES (?)";
-//        String insertPlayer = "INSERT INTO room_players (room_id, user_id, username, score) VALUES (?, ?, ?, 0)";
-//        try (Connection conn = connect();
-//             PreparedStatement stmt1 = conn.prepareStatement(insertRoom);
-//             PreparedStatement stmt2 = conn.prepareStatement(insertPlayer)) {
-//            stmt1.setString(1, roomID);
-//            int rows1 = stmt1.executeUpdate();
-//            System.out.println("Tạo phòng " + roomID + ": " + rows1 + " dòng");
-//
-//            stmt2.setString(1, roomID);
-//            stmt2.setInt(2, userId);
-//            stmt2.setString(3, username);
-//            int rows2 = stmt2.executeUpdate();
-//            System.out.println("Thêm người chơi vào phòng: " + rows2 + " dòng");
-//            if (rows2 > 0) {
-//                System.out.println("✅ Tạo phòng thành công!");
-//            } else {
-//                System.out.println("⚠ Tạo phòng không thành công");
-//            }
-//        } catch (SQLException e) {
-//            System.err.println("❌ Lỗi createRoom: " + e.getMessage());
-//            e.printStackTrace();
-//        }
-//    }
     public static void createRoom(String roomID, int userId, String username) {
         String insertRoom = "INSERT IGNORE INTO rooms (room_code,created_by) VALUES (?,?)";
         String insertPlayer = "INSERT INTO room_players (room_id, user_id, score) VALUES (?, ?, 0)";
@@ -217,23 +275,6 @@ public class DBConnection {
         }
     }
 
-//    }
-//    public static void addPlayerToRoom(String roomID, int userId, String username) {
-//        String insertPlayer = "INSERT INTO room_players (room_id, user_id, score) VALUES (?, ?, 0)";
-//        try (Connection conn = connect();
-//             PreparedStatement stmt = conn.prepareStatement(insertPlayer)) {
-//            stmt.setString(1, roomID);
-//            stmt.setInt(2, userId);
-//            int rowsAffected = stmt.executeUpdate();
-//            if(rowsAffected>0){
-//                System.out.println("✅ Người chơi tham gia phòng thành công ở hàm addPlayerToRoom: " + rowsAffected + " dòng");
-//            } else {
-//                System.out.println("⚠ Người chơi tham gia phòng không thành công ở hàm addPlayerToRoom");
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
     
     public static void addPlayerToRoom(String roomID, int userId, String username) {
         // THÊM: Check tồn tại trước INSERT

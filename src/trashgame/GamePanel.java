@@ -21,7 +21,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
     private int lives = 3;
     private Random rand = new Random();
     private int spawnCounter = 0;
-    private int spawnInterval = 100; // tick giữa 2 spawn
+    private int spawnInterval = 100;
     private boolean gameOver = false;
     private int panelWidth = 1000;
     private int panelHeight = 600;
@@ -32,19 +32,18 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
     private String username;
     private int lastSentScore = 0;
     
-    private int binSpacing = 10; // khoảng cách cố định giữa các thùng
+    private int binSpacing = 10;
 
     public GamePanel(MainFrame frame) {
         this.parent = frame;
         this.username = parent.getCurrentUsername();
         setPreferredSize(new Dimension(panelWidth, panelHeight));
-        setBackground(Color.WHITE); // màu nền game
+        setBackground(Color.WHITE);
         setFocusable(true);
         addKeyListener(new KeyHandler());
 
-        // Initialize bins: đặt block ban đầu sao cho cả block nằm trong màn
-        int startX = 100; // vị trí thùng rác ở vị trí 100px
-        organicBin = new Bin(startX, panelHeight - 60, "organic"); //thùng cách đáy 60px
+        int startX = 100;
+        organicBin = new Bin(startX, panelHeight - 60, "organic");
         inorganicBin = new Bin(organicBin.getX() + organicBin.getWidth() + binSpacing, panelHeight - 60, "inorganic");
         recyclableBin = new Bin(inorganicBin.getX() + inorganicBin.getWidth() + binSpacing, panelHeight - 60, "recyclable");
 
@@ -53,15 +52,14 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
             parent.getClient().addScoreListener(this);
         }
         
-        timer = new Timer(20, this);//50FPS 
+        timer = new Timer(20, this);
         timer.start();
-
     }
     
     private void initScoreTable() {
         JPanel rightPanel = new JPanel(new BorderLayout());
         JLabel scoreLabel = new JLabel("Điểm người chơi khác:");
-        scoreModel = new DefaultTableModel(new Object[]{"Người chơi", "Điểm"}, 0) {  // SỬA: Sử dụng DefaultTableModel
+        scoreModel = new DefaultTableModel(new Object[]{"Người chơi", "Điểm"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -73,54 +71,54 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
         rightPanel.add(scoreLabel, BorderLayout.NORTH);
         rightPanel.add(new JScrollPane(scoreTable), BorderLayout.CENTER);
 
-        // Thêm panel bên phải màn hình game
         add(rightPanel, BorderLayout.EAST);
     }
     
+    // FIXED: Không còn tham số
     private void sendScoreToServer() {
-        if (parent.getClient() != null && score > lastSentScore) {  // Chỉ gửi nếu điểm tăng (tránh spam)
-            parent.getClient().sendMessage("SCORE:" + score);
+        if (parent.getClient() != null && score > lastSentScore) {
+            parent.getClient().sendMessage("SCORE_REALTIME:" + score);
             lastSentScore = score;
-            System.out.println("📤 Gửi điểm số: " + score + " cho server");
+            System.out.println("📤 Gửi điểm số thời gian thực: " + score);
         }
     }
     
     @Override
     public void onScoreUpdate(String otherUsername, int otherScore) {
-        // Cập nhật bảng score (chỉ cho người khác, không phải chính mình)
         boolean found = false;
         for (int i = 0; i < scoreModel.getRowCount(); i++) {
-            if (scoreModel.getValueAt(i, 0).equals(otherUsername) && !otherUsername.equals(username)) {  // SỬA: So sánh với field username
+            if (scoreModel.getValueAt(i, 0).equals(otherUsername) && !otherUsername.equals(username)) {
                 scoreModel.setValueAt(otherScore, i, 1);
                 found = true;
                 break;
             }
         }
-        if (!found && !otherUsername.equals(username)) {  // SỬA: So sánh với field username
+        if (!found && !otherUsername.equals(username)) {
             scoreModel.addRow(new Object[]{otherUsername, otherScore});
         }
-        repaint();  // Cập nhật UI
+        repaint();
     }
     
     public void onRoomPlayerList(List<String[]> players) {
-        // Load danh sách ban đầu vào bảng score
         scoreModel.setRowCount(0);
         for (String[] p : players) {
-            if (!p[0].equals(username)) {  // Bỏ qua chính mình
-                scoreModel.addRow(new Object[]{p[0], Integer.parseInt(p[1])});  // Chuyển score string thành int nếu cần
+            if (!p[0].equals(username)) {
+                scoreModel.addRow(new Object[]{p[0], Integer.parseInt(p[1])});
             }
         }
     }
+    
     public void onStartGame() {
-        // GamePanel đã sẵn sàng, không cần làm gì thêm
         System.out.println("Game started for " + username);
     }
-@Override
+    
+    @Override
     public void onUserJoined(String username) {
         if (!username.equals(this.username)) {
             scoreModel.addRow(new Object[]{username, 0});
         }
     }
+    
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -139,7 +137,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
             item.draw(g);
         }
 
-        g.setColor(Color.BLACK);//màu chữ cho score và mạng
+        g.setColor(Color.BLACK);
         g.drawString("Score: " + score, 10, 20);
         g.drawString("Lives: " + lives, 10, 40);
     }
@@ -148,38 +146,30 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
     public void actionPerformed(ActionEvent e) {
         if (gameOver) return;
 
-        // spawn
-        spawnCounter++;//  đếm thời gian để tạo rác 
-        if (spawnCounter >= spawnInterval) {//nếu thời gian lớn hơn điều kiện thì tạo
-            boolean angled = (score >= 0); //nếu điểm lớn hơn ? thì thêm thay đổi góc độ rơi
-
+        spawnCounter++;
+        if (spawnCounter >= spawnInterval) {
+            boolean angled = (score >= 0);
             int binStartX = organicBin.getX();
             int binEndX = recyclableBin.getX() + recyclableBin.getWidth();
-
             TrashItem newItem = new TrashItem(panelWidth, panelHeight, binStartX, binEndX, angled, score);
             items.add(newItem);
             spawnCounter = 0;
         }
 
-        // tăng độ khó an toàn
         if (fallSpeedTimer > 0 && fallSpeedTimer % 1500 == 0 && spawnInterval > 30) {
-            spawnInterval -= 10;//giảm thời gian sinh giữa 2 lần tạo rác
+            spawnInterval -= 10;
         }
 
-        // fall
         for (TrashItem item : items) item.fall();
 
-        // tăng tốc
         fallSpeedTimer++;
         if (fallSpeedTimer > 500) {
             for (TrashItem item : items) item.increaseSpeed();
             fallSpeedTimer = 0;
         }
 
-        // va chạm
         checkCollisions();
 
-        // rác rơi ngoài: bom thì bỏ qua, khác thì trừ mạng 1 lần khi rơi ra ngoài
         items.removeIf(item -> {
             if (item.getY() > panelHeight) {
                 if (!"bomb".equals(item.getType())) {
@@ -193,14 +183,13 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
 
         repaint();
     }
-    // THÊM METHOD NÀY VÀO GamePanel
+    
     public void cleanup() {
         if (timer != null && timer.isRunning()) {
             timer.stop();
             System.out.println("Dừng timer của GamePanel cũ");
         }
 
-        // Remove listener để tránh nhận message từ server
         if (parent.getClient() != null) {
             parent.getClient().removeScoreListener(this);
             System.out.println("Xóa ScoreListener của GamePanel cũ");
@@ -213,9 +202,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
         java.util.List<TrashItem> toRemove = new java.util.ArrayList<>();
 
         for (TrashItem item : items) {
-            // khi rác chạm "mức" thùng
             if (item.getY() + 20 >= organicBin.getY()) {
-                // if bomb
                 if ("bomb".equals(item.getType())) {
                     if (checkBinCollision(item, organicBin) ||
                         checkBinCollision(item, inorganicBin) ||
@@ -230,14 +217,17 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
 
                 boolean matched = false;
                 if (checkBinCollision(item, organicBin) && "organic".equals(item.getType())) {
-                    score++; matched = true;
-                    sendScoreToServer(score);
+                    score++; 
+                    matched = true;
+                    sendScoreToServer();  // FIXED: Không có tham số
                 } else if (checkBinCollision(item, inorganicBin) && "inorganic".equals(item.getType())) {
-                    score++; matched = true;
-                    sendScoreToServer(score);
+                    score++; 
+                    matched = true;
+                    sendScoreToServer();  // FIXED: Không có tham số
                 } else if (checkBinCollision(item, recyclableBin) && "recyclable".equals(item.getType())) {
-                    score++; matched = true;
-                    sendScoreToServer(score);
+                    score++; 
+                    matched = true;
+                    sendScoreToServer();  // FIXED: Không có tham số
                 }
 
                 if (!matched) {
@@ -254,42 +244,22 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
         return item.getX() + 20 > bin.getX()
                 && item.getX() < bin.getX() + bin.getWidth();
     }
-    
-//    private void updateScoreInDB(int user_id, int score) {
-//        String sql = "INSERT INTO scores (user_id,score,play_time) VALUES (?,?,CURRENT_TIMESTAMP)";
-//
-//        try (Connection conn = DBConnection.connect();
-//             PreparedStatement stmt = conn.prepareStatement(sql)) {
-//            stmt.setInt(1, user_id);
-//            stmt.setInt(2, score);
-//            stmt.executeUpdate();
-//            System.out.println(stmt.toString());
-//            System.out.println("✅ Điểm số đã được lưu cho " + user_id);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
 
     private void endGame() {
         if(gameOver) return;
         gameOver = true;
         if (timer != null) timer.stop();
-        // cập nhật điểm số vào DB
+        
+        // FIXED: Gửi điểm cuối cùng để lưu vào DB
         if (parent.getClient() != null) {
-            parent.getClient().sendMessage("SCORE:" + score);  // Server sẽ lưu DB
-            System.out.println("📤 Gửi score cuối: " + score + " qua server");
-        } 
+            int user_id = parent.getCurrentUser();
+            parent.getClient().sendMessage("SCORE_FINAL:" + score + ":" + user_id);
+            System.out.println("📤 Gửi score cuối để lưu DB: " + score + " (userId=" + user_id + ")");
+        }
+        
         SwingUtilities.invokeLater(() -> parent.showControlPanel(score));
     }
-    
-    private void sendScoreToServer(int newScore) {
-        if (parent.getClient() != null) {
-            parent.getClient().sendMessage("SCORE:" + newScore);
-            System.out.println("📤 Gửi score thời gian thực: " + newScore);
-        }
-    }
 
-    // move toàn block thùng sao cho giữ khoảng cách cố định và không ra ngoài màn
     private void moveBlockBy(int deltaX) {
         int binWidth = organicBin.getWidth();
         int blockWidth = 3 * binWidth + 2 * binSpacing;
@@ -305,17 +275,17 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Sc
 
     @Override
     public void keyTyped(KeyEvent e) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
     public void keyPressed(KeyEvent e) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     private class KeyHandler implements KeyListener {

@@ -10,7 +10,7 @@ public class ClientHandler extends Thread {
     private BufferedReader in;
     private PrintWriter out;
     private String username;
-    private int userId;
+    private int userId = -1;
     private String roomID;
 
     public ClientHandler(Socket socket) {
@@ -19,6 +19,10 @@ public class ClientHandler extends Thread {
     
     public String getUsername() {
         return username;
+    }
+    
+    public int getUserId() {
+        return userId;
     }
 
     @Override
@@ -29,7 +33,7 @@ public class ClientHandler extends Thread {
 
             String line;
             while ((line = in.readLine()) != null) {
-                System.out.println("📩 Nhận từ client: " + line);
+                System.out.println("📨 Received from client: " + line);
                 handleMessage(line);
             }
         } catch (Exception e) {
@@ -45,76 +49,128 @@ public class ClientHandler extends Thread {
             case "LOGIN":
                 String loginUsername = parts[1];
                 String password = parts[2];
-                int loginUserId = DBConnection.loginUser(loginUsername, password);  // Kiểm tra DB trên server
+                int loginUserId = DBConnection.loginUser(loginUsername, password);
                 if (loginUserId != -1) {
-                    out.println("LOGIN_SUCCESS:" + loginUserId);  // Trả thành công
-                    System.out.println("✅ Server xác thực " + loginUsername + " thành công");
+                    this.userId = loginUserId;
+                    this.username = loginUsername;
+                    out.println("LOGIN_SUCCESS:" + loginUserId);
+                    System.out.println("✅ Server authenticated " + loginUsername + " successfully (userId=" + loginUserId + ")");
                 } else {
-                    out.println("LOGIN_FAIL");  // Trả thất bại
-                    System.out.println("❌ Server từ chối login cho " + loginUsername);
+                    out.println("LOGIN_FAIL");
+                    System.out.println("❌ Server rejected login for " + loginUsername);
                 }
                 break;
+                
             case "REGISTER":
                 String regUsername = parts[1];
                 String regPassword = parts[2];
-                if (DBConnection.registerUser(regUsername, regPassword)) {  // Gọi hàm register trên server
+                if (DBConnection.registerUser(regUsername, regPassword)) {
                     out.println("REGISTER_SUCCESS:" + regUsername);
                 } else {
-                    out.println("REGISTER_FAIL:Username đã tồn tại hoặc lỗi DB");
+                    out.println("REGISTER_FAIL:Username already exists or DB error");
                 }
-                break;   
+                break;
+                
             case "LEADERBOARD":
-                List<String[]> leaderboard = DBConnection.getLeaderboard();  // Server gọi DB
+                List<String[]> leaderboard = DBConnection.getLeaderboard();
                 StringBuilder sb = new StringBuilder("LEADERBOARD:");
                 for (String[] row : leaderboard) {
                     sb.append(row[0]).append(":").append(row[1]).append(";");
                 }
                 out.println(sb.toString());
                 break;
+                
             case "CREATE_ROOM":
                 roomID = parts[1];
-                userId = Integer.parseInt(parts[2]);
-                username = parts[3];
-                DBConnection.createRoom(roomID, userId, username);
-                Server.addToRoom(roomID, this);  // SỬA: Gọi addToRoom (đã có broadcast bên trong)
+                if (this.userId == -1 && parts.length > 3) {
+                    this.userId = Integer.parseInt(parts[2]);
+                    this.username = parts[3];
+                    System.out.println("⚠️ WARNING: userId not set from LOGIN, using from message: " + this.userId);
+                }
+                
+                System.out.println("🏠 Creating room: " + roomID + " for userId=" + this.userId + ", username=" + this.username);
+                DBConnection.createRoom(roomID, this.userId, this.username);
+                Server.addToRoom(roomID, this);
                 break;
 
             case "JOIN_ROOM":
                 roomID = parts[1];
-                userId = Integer.parseInt(parts[2]);
-                username = parts[3];
-                DBConnection.addPlayerToRoom(roomID, userId, username);
-                Server.addToRoom(roomID, this);  // SỬA: Gọi addToRoom (đã có broadcast bên trong)
+                if (this.userId == -1 && parts.length > 3) {
+                    this.userId = Integer.parseInt(parts[2]);
+                    this.username = parts[3];
+                    System.out.println("⚠️ WARNING: userId not set from LOGIN, using from message: " + this.userId);
+                }
+                
+                System.out.println("🚪 Joining room: " + roomID + " for userId=" + this.userId + ", username=" + this.username);
+                DBConnection.addPlayerToRoom(roomID, this.userId, this.username);
+                Server.addToRoom(roomID, this);
                 break;
             
             case "READY":
-                username = parts[1];  // READY:username
-                Server.updateReadyStatus(roomID, username, true);
+                String readyUsername = parts[1];
+                Server.updateReadyStatus(roomID, readyUsername, true);
                 break;
 
             case "UNREADY":
-                username = parts[1];  // UNREADY:username
-                Server.updateReadyStatus(roomID, username, false);
+                String unreadyUsername = parts[1];
+                Server.updateReadyStatus(roomID, unreadyUsername, false);
                 break;
 
-            case "SCORE":
-                int score = Integer.parseInt(parts[1]);  // SCORE:score
-                System.out.println("🏆 " + username + " cập nhật điểm: " + score);  
-
-                DBConnection.updatePlayerScore(roomID, userId, score);  
-                Server.broadcastScoreUpdate(roomID, username, score);
+            // FIXED: Xử lý điểm cuối game (lưu vào DB)
+            case "SCORE_FINAL":
+                if (parts.length < 3) {
+                    System.err.println("❌ SCORE_FINAL format sai: " + msg);
+                    break;
+                }
+                
+                int finalScore = Integer.parseInt(parts[1]);
+                int finalUserId = Integer.parseInt(parts[2]);
+                
+                System.out.println("=== SCORE_FINAL (LƯU VÀO DB) ===");
+                System.out.println("  Username: " + this.username);
+                System.out.println("  UserId: " + finalUserId);
+                System.out.println("  Score: " + finalScore);
+                System.out.println("  RoomID: " + (roomID == null ? "NULL (single player)" : roomID));
+                
+                // Kiểm tra userId hợp lệ
+                if (finalUserId <= 0) {
+                    System.err.println("❌ ERROR: Invalid userId=" + finalUserId);
+                    break;
+                }
+                
+                // LƯU VÀO DATABASE
+                DBConnection.updatePlayerScore(roomID, finalUserId, finalScore);
+                System.out.println("✅ Đã gọi updatePlayerScore để lưu vào DB");
                 break;
+                
+            // FIXED: Xử lý điểm thời gian thực (chỉ broadcast, KHÔNG lưu DB)
+            case "SCORE_REALTIME":
+                if (parts.length < 2) {
+                    System.err.println("❌ SCORE_REALTIME format sai: " + msg);
+                    break;
+                }
+                
+                int realtimeScore = Integer.parseInt(parts[1]);
+                System.out.println("🏆 " + username + " cập nhật điểm thời gian thực: " + realtimeScore);
+                
+                // CHỈ BROADCAST cho người chơi khác, KHÔNG lưu DB
+                if (roomID != null) {
+                    Server.broadcastScoreUpdate(roomID, username, realtimeScore);
+                }
+                break;
+                
             case "REFRESH_ROOM":
-                String roomID = parts[1];  // REFRESH_ROOM:roomID
-                System.out.println("🔄 Refresh phòng " + roomID + " (không insert)");
-                Server.broadcastRoomPlayers(roomID);  // Chỉ broadcast danh sách hiện tại từ DB
+                String refreshRoomID = parts[1];
+                System.out.println("🔄 Refreshing room " + refreshRoomID);
+                Server.broadcastRoomPlayers(refreshRoomID);
                 break;
+                
             default:
-                System.out.println("⚠️ Lệnh chưa hỗ trợ: " + command);
+                System.out.println("⚠️ Unsupported command: " + command);
         }
     }
 
     public void sendMessage(String msg) {
         out.println(msg);
     }
-}   
+}
