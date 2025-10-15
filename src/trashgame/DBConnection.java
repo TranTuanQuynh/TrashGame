@@ -6,8 +6,8 @@ import java.util.List;
 
 public class DBConnection {
     private static final String URL = "jdbc:mysql://localhost:3306/trashgame_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
-    private static final String USER = "root";  // Mặc định XAMPP
-    private static final String PASS = "";      // Mặc định XAMPP (không mật khẩu)
+    private static final String USER = "root";  
+    private static final String PASS = "";      
 
     public static Connection connect() {
         try {

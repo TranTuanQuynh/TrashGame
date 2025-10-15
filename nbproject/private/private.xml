@@ -3,9 +3,19 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/code%20ptit/trashgame/src/trashgame/GamePanel.java</file>
+            <file>file:/C:/code%20ptit/trashgame/src/trashgame/TrashItem.java</file>
+            <file>file:/C:/code%20ptit/trashgame/src/trashgame/Client.java</file>
+            <file>file:/C:/code%20ptit/trashgame/src/trashgame/ScoreListener.java</file>
             <file>file:/C:/code%20ptit/trashgame/src/trashgame/Bin.java</file>
+            <file>file:/C:/code%20ptit/trashgame/src/trashgame/MainFrame.java</file>
+            <file>file:/C:/code%20ptit/trashgame/src/trashgame/ModeSelectionPanel.java</file>
+            <file>file:/C:/code%20ptit/trashgame/src/trashgame/GamePanel.java</file>
+            <file>file:/C:/code%20ptit/trashgame/src/trashgame/RoomOptionsPanel.java</file>
+            <file>file:/C:/code%20ptit/trashgame/src/trashgame/ControlPanel.java</file>
+            <file>file:/C:/code%20ptit/trashgame/src/trashgame/DBConnection.java</file>
+            <file>file:/C:/code%20ptit/trashgame/src/trashgame/LoginPanel.java</file>
             <file>file:/C:/code%20ptit/trashgame/src/trashgame/ClientHandler.java</file>
+            <file>file:/C:/code%20ptit/trashgame/src/trashgame/Server.java</file>
         </group>
     </open-files>
 </project-private>

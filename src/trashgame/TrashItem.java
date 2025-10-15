@@ -7,31 +7,27 @@
 //import java.util.Locale;
 //
 //public class TrashItem {
-//    private double x;          // vị trí ngang có thể fractional
+//    private double x;          // vị trí ngang (fractional)
 //    private int y;
 //    private int speed;
-//    private double dx;         // tốc độ ngang fractional
+//    private double dx;         // tốc độ ngang cơ bản
 //    private String type;       // "organic","inorganic","recyclable","bomb"
 //    private Random rand = new Random();
 //    private Color color_trash;
 //    private final int width = 20;
 //    private final int height = 20;
 //
-//    /**
-//     * @param panelWidth   chiều rộng panel (để spawn non-angled)
-//     * @param panelHeight  chiều cao panel (để tính steps cho dx)
-//     * @param binStartX    left của block thùng (organic.x)
-//     * @param binEndX      right boundary của block (recyclable.x + width)
-//     * @param angled       nếu true: spawn và kết thúc trong vùng block, có dx
-//     * @param score        để quyết định thêm bom khi score >= 20
-//     */
+//    // --- thêm cho lượn sóng ---
+//    private boolean wave = false;   // có phải rơi lượn sóng?
+//    private double waveAmplitude;   // biên độ sóng ngang
+//    private double waveFrequency;   // tần số sóng
+//    private int tick = 0;           // đếm bước để tính sin
+//
 //    public TrashItem(int panelWidth, int panelHeight, int binStartX, int binEndX, boolean angled, int score) {
-//        // đảm bảo vùng hợp lệ
 //        int safeLeft = binStartX;
-//        int safeRight = Math.max(binStartX + width, binEndX - width); // ensure > left
+//        int safeRight = Math.max(binStartX + width, binEndX - width);
 //
 //        if (angled && safeRight > safeLeft) {
-//            // spawn bắt đầu trong vùng block, và kết thúc trong vùng block
 //            int range = safeRight - safeLeft + 1;
 //            int xStart = safeLeft + rand.nextInt(range);
 //            int xEnd = safeLeft + rand.nextInt(range);
@@ -39,11 +35,9 @@
 //            this.y = 0;
 //            this.speed = 3;
 //
-//            // tính số bước (steps) rơi dự kiến: (distanceY / speed)
 //            int steps = Math.max(1, (panelHeight - this.y) / Math.max(1, speed));
 //            this.dx = (double)(xEnd - xStart) / (double)steps;
 //        } else {
-//            // non-angled: spawn toàn màn (nhưng tránh viền)
 //            int maxX = Math.max(0, panelWidth - width);
 //            this.x = rand.nextInt(maxX + 1);
 //            this.y = 0;
@@ -51,7 +45,15 @@
 //            this.dx = 0;
 //        }
 //
-//        // xác định loại (thêm bomb nếu score >= 20)
+//        // --- chọn kiểu rơi ---
+//        // Nếu score >= 30 thì có xác suất spawn lượn sóng
+//        if (score >= 0 && rand.nextInt(100) < 30) { // 30% cơ hội
+//            wave = true;
+//            waveAmplitude = 40 + rand.nextInt(30);  // 40-70 px
+//            waveFrequency = 0.1 + rand.nextDouble() * 0.1; // dao động tần số
+//        }
+//
+//        // xác định loại rác (bom nếu score >= 20)
 //        int randType = (score >= 0) ? rand.nextInt(4) : rand.nextInt(3);
 //        switch (randType) {
 //            case 0: type = "organic"; color_trash = Color.RED; break;
@@ -63,10 +65,17 @@
 //
 //    public void fall() {
 //        y += speed;
-//        x += dx;
-//        // giữ within màn (an toàn)
+//
+//        if (wave) {
+//            // dao động theo sin
+//            x += Math.sin(tick * waveFrequency) * (waveAmplitude / 20.0);
+//            tick++;
+//        } else {
+//            x += dx;
+//        }
+//
 //        if (x < 0) x = 0;
-//        // cần panelWidth nếu muốn clamp phải truyền vào hoặc clamp ở GamePanel trước khi vẽ
+//        // nếu muốn clamp bên phải cần truyền panelWidth để cắt
 //    }
 //
 //    public void increaseSpeed() {
@@ -84,35 +93,167 @@
 //    public int getY() { return y; }
 //    public String getType() { return type; }
 //}
-
 package trashgame;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 import java.util.Random;
 import java.util.Locale;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 
 public class TrashItem {
-    private double x;          // vị trí ngang (fractional)
+    private double x;
     private int y;
     private int speed;
-    private double dx;         // tốc độ ngang cơ bản
-    private String type;       // "organic","inorganic","recyclable","bomb"
+    private double dx;
+    private String type;
     private Random rand = new Random();
     private Color color_trash;
-    private final int width = 20;
-    private final int height = 20;
-
-    // --- thêm cho lượn sóng ---
-    private boolean wave = false;   // có phải rơi lượn sóng?
-    private double waveAmplitude;   // biên độ sóng ngang
-    private double waveFrequency;   // tần số sóng
-    private int tick = 0;           // đếm bước để tính sin
+    private final int width = 40;
+    private final int height = 40;
+    
+    // --- Wave motion ---
+    private boolean wave = false;
+    private double waveAmplitude;
+    private double waveFrequency;
+    private int tick = 0;
+    
+    // --- NÂNG CẤP: Hệ thống quản lý nhiều ảnh cho mỗi loại ---
+    private static Map<String, List<BufferedImage>> trashImagesMap = new HashMap<String, List<BufferedImage>>();
+    private static boolean imagesLoaded = false;
+    private BufferedImage currentImage;
+    
+    // THAY ĐỔI: Mỗi loại có MẢNG các đường dẫn ảnh
+    private static final Map<String, String[]> IMAGE_PATHS = new HashMap<String, String[]>() {{
+        put("organic", new String[] {
+            "/resources/trash_apple-removebg-preview.png",
+            "/resources/trash_banana-removebg-preview.png",
+            "/resources/trash_chicken-removebg-preview.png"
+            // Thêm nhiều ảnh hơn nếu có
+        });
+        
+        put("inorganic", new String[] {
+            "/resources/trash_broken_ceramics-removebg-preview.png",
+            "/resources/trash_diapers-removebg-preview.png",
+            "/resources/trash_plastic_bag-removebg-preview.png"
+        });
+        
+        put("recyclable", new String[] {
+            "/resources/trash_can-removebg-preview.png",
+            "/resources/trash_cardboard-removebg-preview.png",
+            "/resources/trash_plastic_bottles-removebg-preview.png"
+        });
+        
+        put("bomb", new String[] {
+            "/resources/trash_bomb.png"
+        });
+    }};
+    
+    // Static block: Load tất cả ảnh 1 lần
+    static {
+        loadAllImages();
+    }
+    
+    /**
+     * Load tất cả ảnh rác vào memory (chỉ chạy 1 lần)
+     * Mỗi loại sẽ có 1 List chứa nhiều ảnh
+     */
+    private static void loadAllImages() {
+        if (imagesLoaded) return;
+        
+        System.out.println("🗑️ Đang load ảnh rác với nhiều variants...");
+        int totalLoaded = 0;
+        
+        for (Map.Entry<String, String[]> entry : IMAGE_PATHS.entrySet()) {
+            String type = entry.getKey();
+            String[] paths = entry.getValue();
+            
+            List<BufferedImage> imageList = new ArrayList<BufferedImage>();
+            
+            // Load từng ảnh trong mảng
+            for (int i = 0; i < paths.length; i++) {
+                String path = paths[i];
+                
+                try {
+                    java.net.URL imageURL = TrashItem.class.getResource(path);
+                    
+                    if (imageURL == null) {
+                        System.err.println("⚠️ Không tìm thấy: " + path);
+                        continue;
+                    }
+                    
+                    BufferedImage originalImage = ImageIO.read(imageURL);
+                    
+                    if (originalImage != null) {
+                        BufferedImage argbImage = convertToARGB(originalImage);
+                        imageList.add(argbImage);
+                        totalLoaded++;
+                        System.out.println("✅ Load " + type + " variant #" + (i+1) + " thành công");
+                    }
+                    
+                } catch (Exception e) {
+                    System.err.println("❌ Lỗi load " + path + ": " + e.getMessage());
+                }
+            }
+            
+            // Lưu danh sách ảnh của loại này
+            if (!imageList.isEmpty()) {
+                trashImagesMap.put(type, imageList);
+                System.out.println("📦 Loại " + type + " có " + imageList.size() + " ảnh");
+            } else {
+                System.err.println("⚠️ Không load được ảnh nào cho loại " + type);
+            }
+        }
+        
+        imagesLoaded = true;
+        System.out.println("✅ Load xong tổng cộng " + totalLoaded + " ảnh rác!");
+    }
+    
+    /**
+     * Convert BufferedImage sang ARGB
+     */
+    private static BufferedImage convertToARGB(BufferedImage src) {
+        BufferedImage newImage = new BufferedImage(
+            src.getWidth(), 
+            src.getHeight(), 
+            BufferedImage.TYPE_INT_ARGB
+        );
+        
+        Graphics2D g = newImage.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g.drawImage(src, 0, 0, null);
+        g.dispose();
+        
+        return newImage;
+    }
+    
+    /**
+     * Random chọn 1 ảnh từ danh sách ảnh của loại này
+     */
+    private BufferedImage getRandomImageForType(String type) {
+        List<BufferedImage> imageList = trashImagesMap.get(type);
+        
+        if (imageList == null || imageList.isEmpty()) {
+            return null;
+        }
+        
+        // Random chọn 1 ảnh
+        int randomIndex = rand.nextInt(imageList.size());
+        return imageList.get(randomIndex);
+    }
 
     public TrashItem(int panelWidth, int panelHeight, int binStartX, int binEndX, boolean angled, int score) {
         int safeLeft = binStartX;
         int safeRight = Math.max(binStartX + width, binEndX - width);
-
+        
         if (angled && safeRight > safeLeft) {
             int range = safeRight - safeLeft + 1;
             int xStart = safeLeft + rand.nextInt(range);
@@ -120,7 +261,6 @@ public class TrashItem {
             this.x = xStart;
             this.y = 0;
             this.speed = 3;
-
             int steps = Math.max(1, (panelHeight - this.y) / Math.max(1, speed));
             this.dx = (double)(xEnd - xStart) / (double)steps;
         } else {
@@ -130,38 +270,52 @@ public class TrashItem {
             this.speed = 3;
             this.dx = 0;
         }
-
-        // --- chọn kiểu rơi ---
-        // Nếu score >= 30 thì có xác suất spawn lượn sóng
-        if (score >= 0 && rand.nextInt(100) < 30) { // 30% cơ hội
+        
+        // Wave motion
+        if (score >= 0 && rand.nextInt(100) < 30) {
             wave = true;
-            waveAmplitude = 40 + rand.nextInt(30);  // 40-70 px
-            waveFrequency = 0.1 + rand.nextDouble() * 0.1; // dao động tần số
+            waveAmplitude = 40 + rand.nextInt(30);
+            waveFrequency = 0.1 + rand.nextDouble() * 0.1;
         }
-
-        // xác định loại rác (bom nếu score >= 20)
+        
+        // Xác định loại rác
         int randType = (score >= 0) ? rand.nextInt(4) : rand.nextInt(3);
         switch (randType) {
-            case 0: type = "organic"; color_trash = Color.RED; break;
-            case 1: type = "inorganic"; color_trash = Color.BLUE; break;
-            case 2: type = "recyclable"; color_trash = Color.GREEN; break;
-            default: type = "bomb"; color_trash = Color.BLACK; break;
+            case 0: 
+                type = "organic"; 
+                color_trash = Color.RED;
+                break;
+            case 1: 
+                type = "inorganic"; 
+                color_trash = Color.BLUE;
+                break;
+            case 2: 
+                type = "recyclable"; 
+                color_trash = Color.GREEN;
+                break;
+            default: 
+                type = "bomb"; 
+                color_trash = Color.BLACK;
+                break;
+        }
+        
+        // NÂNG CẤP: Random chọn 1 ảnh từ danh sách
+        currentImage = getRandomImageForType(type);
+        
+        if (currentImage == null) {
+            System.out.println("⚠️ Không có ảnh cho " + type + ", dùng hình vẽ mặc định");
         }
     }
 
     public void fall() {
         y += speed;
-
         if (wave) {
-            // dao động theo sin
             x += Math.sin(tick * waveFrequency) * (waveAmplitude / 20.0);
             tick++;
         } else {
             x += dx;
         }
-
         if (x < 0) x = 0;
-        // nếu muốn clamp bên phải cần truyền panelWidth để cắt
     }
 
     public void increaseSpeed() {
@@ -169,13 +323,46 @@ public class TrashItem {
     }
 
     public void draw(Graphics g) {
-        g.setColor(color_trash);
-        g.fillRect((int)Math.round(x), y, width, height);
-        g.setColor(Color.BLACK);
-        g.drawString(type.substring(0, 1).toUpperCase(Locale.ENGLISH), (int)Math.round(x) + 5, y + 15);
+        Graphics2D g2 = (Graphics2D) g;
+        
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        
+        int drawX = (int) Math.round(x);
+        int drawY = y;
+        
+        if (currentImage != null) {
+            // VẼ ẢNH
+            g2.drawImage(currentImage, drawX, drawY, width, height, null);
+            
+            // OPTIONAL: Vẽ chữ cái đầu (bỏ comment nếu không muốn hiển thị)
+            // g2.setColor(Color.WHITE);
+            // g2.drawString(type.substring(0, 1).toUpperCase(Locale.ENGLISH), 
+            //              drawX + 5, drawY + 15);
+            
+        } else {
+            // FALLBACK: Vẽ hình vuông màu
+            g2.setColor(color_trash);
+            g2.fillRect(drawX, drawY, width, height);
+            
+            g2.setColor(Color.BLACK);
+            g2.drawRect(drawX, drawY, width, height);
+            
+            g2.drawString(type.substring(0, 1).toUpperCase(Locale.ENGLISH), 
+                         drawX + 5, drawY + 15);
+        }
     }
 
-    public int getX() { return (int)Math.round(x); }
-    public int getY() { return y; }
-    public String getType() { return type; }
+    public int getX() { 
+        return (int) Math.round(x); 
+    }
+    
+    public int getY() { 
+        return y; 
+    }
+    
+    public String getType() { 
+        return type; 
+    }
 }
