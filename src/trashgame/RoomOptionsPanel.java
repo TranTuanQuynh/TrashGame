@@ -115,10 +115,7 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
         
         return panel;
     }
-    
-    /**
-     * Style cho bảng người chơi
-     */
+
     private void stylePlayerTable() {
         // Font và kích thước
         playerTable.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
@@ -158,7 +155,6 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
                     }
                 }
                 
-                // Highlight người chơi hiện tại
                 if (column == 0 && value.equals(username)) {
                     setFont(getFont().deriveFont(Font.BOLD));
                     if (!isSelected) {
@@ -172,7 +168,6 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
         
         playerTable.setDefaultRenderer(Object.class, renderer);
         
-        // Điều chỉnh độ rộng cột
         playerTable.getColumnModel().getColumn(0).setPreferredWidth(200);
         playerTable.getColumnModel().getColumn(1).setPreferredWidth(100);
     }
@@ -189,7 +184,6 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(5, 5, 5, 5);
         
-        // Hàng 1: Tạo phòng + Tham gia phòng
         JPanel row1 = new JPanel(new GridLayout(1, 2, 10, 0));
         row1.setOpaque(false);
         
@@ -201,7 +195,6 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
         
         panel.add(row1, gbc);
         
-        // Hàng 2: Ready button (full width)
         gbc.gridy = 1;
         readyButton = createStyledButton("✓ Ready", new Color(255, 165, 0));
         readyButton.setPreferredSize(new Dimension(0, 50));
@@ -210,9 +203,6 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
         return panel;
     }
     
-    /**
-     * Tạo button với style đẹp và hiệu ứng
-     */
     private JButton createStyledButton(String text, Color accentColor) {
         JButton button = new JButton(text);
         
@@ -228,8 +218,7 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
             BorderFactory.createLineBorder(accentColor, 2),
             BorderFactory.createEmptyBorder(10, 15, 10, 15)
         ));
-        
-        // Hiệu ứng hover
+       
         button.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -263,9 +252,6 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
         return button;
     }
     
-    /**
-     * Tạo button nhỏ cho icon (Back button)
-     */
     private JButton createIconButton(String text, Color color) {
         JButton button = new JButton(text);
         
@@ -293,7 +279,7 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
     }
 
     private void attachNetworkedActions() {
-        // THÊM: Nút Back
+        
         backButton.addActionListener(e -> {
             // Quay lại ModeSelectionPanel
             parent.showModeSelection();
@@ -313,7 +299,6 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
                 System.out.println("✅ Người chơi " + username + " tạo phòng " + roomID);
                 parent.setCurrentRoomID(roomID);
                 
-                // Visual feedback
                 showNotification("Đã tạo phòng: " + roomID, new Color(0, 200, 100));
             }
         });
@@ -331,7 +316,6 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
                 System.out.println("✅ Người chơi " + username + " tham gia phòng " + roomID);
                 parent.setCurrentRoomID(roomID);
                 
-                // Visual feedback
                 showNotification("Đang tham gia phòng: " + roomID, new Color(0, 150, 255));
             }
         });
@@ -343,14 +327,14 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
                 readyButton.setBackground(new Color(0, 200, 100));
                 isReady = true;
                 
-                showNotification("Bạn đã sẵn sàng!", new Color(0, 200, 100));
+                showNotification("You are ready!", new Color(0, 200, 100));
             } else {
                 client.sendMessage("UNREADY:" + username);
                 readyButton.setText("✓ Ready");
                 readyButton.setBackground(new Color(60, 60, 60));
                 isReady = false;
                 
-                showNotification("Đã hủy sẵn sàng", new Color(255, 165, 0));
+                showNotification("You are waiting", new Color(255, 165, 0));
             }
         });
     }
@@ -363,12 +347,10 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
         notif.setBackground(color);
         notif.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         
-        // Tạo popup ở góc trên phải
         final JWindow popup = new JWindow();
         popup.add(notif);
         popup.pack();
         
-        // Vị trí
         Point parentLocation = getLocationOnScreen();
         int x = parentLocation.x + getWidth() - popup.getWidth() - 20;
         int y = parentLocation.y + 20;
@@ -376,7 +358,6 @@ public class RoomOptionsPanel extends JPanel implements ScoreListener {
         
         popup.setVisible(true);
         
-        // Tự động ẩn sau 2 giây
         Timer timer = new Timer(2000, ev -> popup.dispose());
         timer.setRepeats(false);
         timer.start();

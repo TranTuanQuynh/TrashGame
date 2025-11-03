@@ -35,7 +35,7 @@ public class Server {
         // Khởi tạo ready status cho phòng mới
         readyStatus.putIfAbsent(roomID, new ConcurrentHashMap<>());
         readyStatus.get(roomID).put(client.getUsername(), false);  // Ban đầu chưa ready
-        // THÊM: Broadcast danh sách người chơi sau khi thêm (để đồng bộ UI cho tất cả client)
+        
         broadcastRoomPlayers(roomID);
     }
 
@@ -46,7 +46,6 @@ public class Server {
 
         List<String[]> players = DBConnection.getPlayersInRoom(roomID);  // Lấy từ DB
 
-        // SỬA: Tạo chuỗi đúng định dạng: ROOM_PLAYERS:username1,score1;username2,score2;...
         StringBuilder sb = new StringBuilder("ROOM_PLAYERS:");
         for (int i = 0; i < players.size(); i++) {
             sb.append(players.get(i)[0])  // username
@@ -108,13 +107,11 @@ public class Server {
         if (status != null && clients != null) {
             status.put(username, ready);
 
-            // Đếm số người ready
             int readyCount = (int) status.values().stream().filter(b -> b).count();
             int totalPlayers = clients.size();
 
             System.out.println("Phòng " + roomID + ": " + readyCount + "/" + totalPlayers + " ready");
 
-            // THÊM: Kiểm tra số lượng khớp
             if (readyCount == totalPlayers && totalPlayers > 0 && status.size() == totalPlayers) {
                 System.out.println("Tất cả người chơi ready! Bắt đầu game.");
 
@@ -127,7 +124,7 @@ public class Server {
             }
         }
     }
-    // THÊM: Helper đếm số ready
+  
     private static int countReady(Map<String, Boolean> status) {
         return (int) status.values().stream().filter(b -> b).count();
     }

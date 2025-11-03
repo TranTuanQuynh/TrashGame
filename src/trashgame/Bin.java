@@ -64,22 +64,16 @@ public class Bin {
     }
 
     private BufferedImage convertToARGB(BufferedImage src) {
-        // Tạo BufferedImage mới với TYPE_INT_ARGB (hỗ trợ trong suốt)
         BufferedImage newImage = new BufferedImage(
             src.getWidth(), 
             src.getHeight(), 
             BufferedImage.TYPE_INT_ARGB
         );
-        
-        // Copy ảnh gốc sang ảnh mới với alpha channel
         Graphics2D g = newImage.createGraphics();
-        
-        // BẬT khử răng cưa và rendering chất lượng cao
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        
-        // Vẽ ảnh gốc lên ảnh mới
+ 
         g.drawImage(src, 0, 0, null);
         g.dispose();
         
@@ -130,26 +124,20 @@ public class Bin {
         g2.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
 
         if (binImage != null) {
-            // Lưu composite gốc
             Composite originalComposite = g2.getComposite();
             
             if (isFlashing) {
-                // Hiệu ứng nhấp nháy
                 float alpha = (float) Math.abs(Math.sin((System.currentTimeMillis() - flashStartTime) / 50.0));
                 g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f + 0.5f * alpha));
             }
-            
-            // VẼ ảnh (với alpha channel được giữ nguyên)
+
             g2.drawImage(binImage, x, y, width, height, null);
-            
-            // Khôi phục composite
+
             g2.setComposite(originalComposite);
 
-            // Vẽ chữ loại thùng
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            
-            // Vẽ chữ có viền đen (để dễ đọc)
+
             String label = type.substring(0, 1).toUpperCase(Locale.ENGLISH);
             FontMetrics fm = g2.getFontMetrics();
             int labelWidth = fm.stringWidth(label);
@@ -189,10 +177,7 @@ public class Bin {
                 y + (height + labelHeight) / 2 - 2);
         }
     }
-    
-    /**
-     * Lấy màu theo loại thùng (dùng cho fallback)
-     */
+
     private Color getColorByType() {
         switch (type) {
             case "organic":

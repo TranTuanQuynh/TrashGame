@@ -18,10 +18,8 @@ public class Client {
     // Danh sách listener để UI (RoomOptionsPanel, GamePanel) đăng ký
     private final List<ScoreListener> listeners = new CopyOnWriteArrayList<>();
 
-    // THÊM: Callback cho login (để LoginPanel nhận phản hồi từ server)
     private LoginCallback loginCallback;
 
-    // THÊM: Callback cho register (nếu cần)
     private RegisterCallback registerCallback;
     private LeaderboardCallback leaderboardCallback;
 
@@ -30,7 +28,6 @@ public class Client {
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.out = new PrintWriter(socket.getOutputStream(), true);
 
-        // Thread nhận tin nhắn từ server
         new Thread(() -> {
             try {
                 String msg;
@@ -43,23 +40,20 @@ public class Client {
         }).start();
     }
 
-    // THÊM: Set callback cho login
     public void setLoginCallback(LoginCallback callback) {
         this.loginCallback = callback;
     }
     public void setLeaderboardCallback(LeaderboardCallback callback) {
         this.leaderboardCallback = callback;
     }
-    // THÊM: Set callback cho register
+  
     public void setRegisterCallback(RegisterCallback callback) {
         this.registerCallback = callback;
     }
 
-    // Thêm/xóa listener
     public void addScoreListener(ScoreListener l) { listeners.add(l); }
     public void removeScoreListener(ScoreListener l) { listeners.remove(l); }
 
-    // Gửi tin nhắn tới server
     public void sendMessage(String msg) {
         out.println(msg);
     }
@@ -72,35 +66,31 @@ public class Client {
     public void sendRegister(String username, String password) {
         sendMessage("REGISTER:" + username + ":" + password);
     }
-    // THÊM: Gửi yêu cầu leaderboard
+
     public void sendLeaderboardRequest() {
         sendMessage("LEADERBOARD");
     }
 
-    // THÊM: Interface callback cho leaderboard
     public interface LeaderboardCallback {
         void onLeaderboardReceived(List<String[]> leaderboard);
         void onLeaderboardFail(String error);
     }
-    // THÊM: Interface callback cho login
+
     public interface LoginCallback {
         void onLoginSuccess(int userId, String username);
         void onLoginFail();
     }
 
-    // THÊM: Interface callback cho register
     public interface RegisterCallback {
         void onRegisterSuccess(String username);
         void onRegisterFail(String error);
     }
 
-    // Xử lý tin nhắn từ server
     private void handleMessage(String msg) {
         if (msg.startsWith("LOGIN_SUCCESS")) {
             String[] parts = msg.split(":");
             userId = Integer.parseInt(parts[1]);
             SwingUtilities.invokeLater(() -> {
-                // THÊM: Gọi callback login success
                 if (loginCallback != null) {
                     loginCallback.onLoginSuccess(userId, username);  // Sử dụng username đã lưu
                 }
@@ -109,7 +99,7 @@ public class Client {
 
         } else if (msg.startsWith("LOGIN_FAIL")) {
             SwingUtilities.invokeLater(() -> {
-                // THÊM: Gọi callback login fail
+
                 if (loginCallback != null) {
                     loginCallback.onLoginFail();
                 }
@@ -191,7 +181,6 @@ public class Client {
             }
             SwingUtilities.invokeLater(() -> {
                 for (ScoreListener l : listeners) {
-                    // SỬA: Sử dụng instanceof để tránh cast error
                     if (l instanceof RoomOptionsPanel) {
                         ((RoomOptionsPanel) l).onRoomPlayerList(players);
                     } else if (l instanceof GamePanel) {
@@ -212,7 +201,7 @@ public class Client {
                 }
             });
 
-        } else if (msg.startsWith("PLAYER")) {  // GIỮ NGUYÊN: Xử lý cũ nếu cần
+        } else if (msg.startsWith("PLAYER")) {  
             // PLAYER:username:score
             String[] parts = msg.split(":");
             String user = parts[1];
@@ -220,9 +209,8 @@ public class Client {
 
             SwingUtilities.invokeLater(() -> {
                 for (ScoreListener l : listeners) {
-                    // thêm user mới (nếu chưa có)
                     l.onUserJoined(user);
-                    // cập nhật điểm hiện tại
+
                     l.onScoreUpdate(user, score);
                 }
             });

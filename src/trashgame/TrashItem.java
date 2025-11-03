@@ -1,98 +1,4 @@
-//
-//package trashgame;
-//
-//import java.awt.Color;
-//import java.awt.Graphics;
-//import java.util.Random;
-//import java.util.Locale;
-//
-//public class TrashItem {
-//    private double x;          // vị trí ngang (fractional)
-//    private int y;
-//    private int speed;
-//    private double dx;         // tốc độ ngang cơ bản
-//    private String type;       // "organic","inorganic","recyclable","bomb"
-//    private Random rand = new Random();
-//    private Color color_trash;
-//    private final int width = 20;
-//    private final int height = 20;
-//
-//    // --- thêm cho lượn sóng ---
-//    private boolean wave = false;   // có phải rơi lượn sóng?
-//    private double waveAmplitude;   // biên độ sóng ngang
-//    private double waveFrequency;   // tần số sóng
-//    private int tick = 0;           // đếm bước để tính sin
-//
-//    public TrashItem(int panelWidth, int panelHeight, int binStartX, int binEndX, boolean angled, int score) {
-//        int safeLeft = binStartX;
-//        int safeRight = Math.max(binStartX + width, binEndX - width);
-//
-//        if (angled && safeRight > safeLeft) {
-//            int range = safeRight - safeLeft + 1;
-//            int xStart = safeLeft + rand.nextInt(range);
-//            int xEnd = safeLeft + rand.nextInt(range);
-//            this.x = xStart;
-//            this.y = 0;
-//            this.speed = 3;
-//
-//            int steps = Math.max(1, (panelHeight - this.y) / Math.max(1, speed));
-//            this.dx = (double)(xEnd - xStart) / (double)steps;
-//        } else {
-//            int maxX = Math.max(0, panelWidth - width);
-//            this.x = rand.nextInt(maxX + 1);
-//            this.y = 0;
-//            this.speed = 3;
-//            this.dx = 0;
-//        }
-//
-//        // --- chọn kiểu rơi ---
-//        // Nếu score >= 30 thì có xác suất spawn lượn sóng
-//        if (score >= 0 && rand.nextInt(100) < 30) { // 30% cơ hội
-//            wave = true;
-//            waveAmplitude = 40 + rand.nextInt(30);  // 40-70 px
-//            waveFrequency = 0.1 + rand.nextDouble() * 0.1; // dao động tần số
-//        }
-//
-//        // xác định loại rác (bom nếu score >= 20)
-//        int randType = (score >= 0) ? rand.nextInt(4) : rand.nextInt(3);
-//        switch (randType) {
-//            case 0: type = "organic"; color_trash = Color.RED; break;
-//            case 1: type = "inorganic"; color_trash = Color.BLUE; break;
-//            case 2: type = "recyclable"; color_trash = Color.GREEN; break;
-//            default: type = "bomb"; color_trash = Color.BLACK; break;
-//        }
-//    }
-//
-//    public void fall() {
-//        y += speed;
-//
-//        if (wave) {
-//            // dao động theo sin
-//            x += Math.sin(tick * waveFrequency) * (waveAmplitude / 20.0);
-//            tick++;
-//        } else {
-//            x += dx;
-//        }
-//
-//        if (x < 0) x = 0;
-//        // nếu muốn clamp bên phải cần truyền panelWidth để cắt
-//    }
-//
-//    public void increaseSpeed() {
-//        speed += 1;
-//    }
-//
-//    public void draw(Graphics g) {
-//        g.setColor(color_trash);
-//        g.fillRect((int)Math.round(x), y, width, height);
-//        g.setColor(Color.BLACK);
-//        g.drawString(type.substring(0, 1).toUpperCase(Locale.ENGLISH), (int)Math.round(x) + 5, y + 15);
-//    }
-//
-//    public int getX() { return (int)Math.round(x); }
-//    public int getY() { return y; }
-//    public String getType() { return type; }
-//}
+
 package trashgame;
 
 import java.awt.Color;
@@ -125,12 +31,10 @@ public class TrashItem {
     private double waveFrequency;
     private int tick = 0;
     
-    // --- NÂNG CẤP: Hệ thống quản lý nhiều ảnh cho mỗi loại ---
     private static Map<String, List<BufferedImage>> trashImagesMap = new HashMap<String, List<BufferedImage>>();
     private static boolean imagesLoaded = false;
     private BufferedImage currentImage;
-    
-    // THAY ĐỔI: Mỗi loại có MẢNG các đường dẫn ảnh
+
     private static final Map<String, String[]> IMAGE_PATHS = new HashMap<String, String[]>() {{
         put("organic", new String[] {
             "/resources/trash_apple-removebg-preview.png",
@@ -155,16 +59,11 @@ public class TrashItem {
             "/resources/trash_bomb.png"
         });
     }};
-    
-    // Static block: Load tất cả ảnh 1 lần
+
     static {
         loadAllImages();
     }
-    
-    /**
-     * Load tất cả ảnh rác vào memory (chỉ chạy 1 lần)
-     * Mỗi loại sẽ có 1 List chứa nhiều ảnh
-     */
+ 
     private static void loadAllImages() {
         if (imagesLoaded) return;
         
@@ -215,10 +114,7 @@ public class TrashItem {
         imagesLoaded = true;
         System.out.println("✅ Load xong tổng cộng " + totalLoaded + " ảnh rác!");
     }
-    
-    /**
-     * Convert BufferedImage sang ARGB
-     */
+   
     private static BufferedImage convertToARGB(BufferedImage src) {
         BufferedImage newImage = new BufferedImage(
             src.getWidth(), 
@@ -235,17 +131,13 @@ public class TrashItem {
         return newImage;
     }
     
-    /**
-     * Random chọn 1 ảnh từ danh sách ảnh của loại này
-     */
     private BufferedImage getRandomImageForType(String type) {
         List<BufferedImage> imageList = trashImagesMap.get(type);
         
         if (imageList == null || imageList.isEmpty()) {
             return null;
         }
-        
-        // Random chọn 1 ảnh
+     
         int randomIndex = rand.nextInt(imageList.size());
         return imageList.get(randomIndex);
     }
@@ -298,8 +190,7 @@ public class TrashItem {
                 color_trash = Color.BLACK;
                 break;
         }
-        
-        // NÂNG CẤP: Random chọn 1 ảnh từ danh sách
+ 
         currentImage = getRandomImageForType(type);
         
         if (currentImage == null) {
@@ -335,12 +226,7 @@ public class TrashItem {
         if (currentImage != null) {
             // VẼ ẢNH
             g2.drawImage(currentImage, drawX, drawY, width, height, null);
-            
-            // OPTIONAL: Vẽ chữ cái đầu (bỏ comment nếu không muốn hiển thị)
-            // g2.setColor(Color.WHITE);
-            // g2.drawString(type.substring(0, 1).toUpperCase(Locale.ENGLISH), 
-            //              drawX + 5, drawY + 15);
-            
+         
         } else {
             // FALLBACK: Vẽ hình vuông màu
             g2.setColor(color_trash);

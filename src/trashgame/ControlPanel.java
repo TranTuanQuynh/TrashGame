@@ -86,16 +86,7 @@ public class ControlPanel extends JPanel {
         JButton roomButton = createStyledButton("🏠 Back To Room", new Color(60, 130, 200));
         roomButton.addActionListener(e -> parent.showRoomOptions());
         panel.add(roomButton, gbc);
-        
-        // Nút Bảng xếp hạng (optional - nếu có)
-//        JButton leaderboardButton = createStyledButton("🏆 ", new Color(255, 165, 0));
-//        leaderboardButton.addActionListener(e -> {
-//            // TODO: Implement leaderboard
-//            JOptionPane.showMessageDialog(this, "Chức năng đang phát triển!");
-//        });
-//        panel.add(leaderboardButton, gbc);
-        
-        // Nút Thoát
+
         JButton exitButton = createStyledButton("🚪 Exit Game", new Color(200, 50, 50));
         exitButton.addActionListener(e -> {
             int confirm = JOptionPane.showConfirmDialog(

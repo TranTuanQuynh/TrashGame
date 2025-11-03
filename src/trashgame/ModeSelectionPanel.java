@@ -38,8 +38,7 @@ public class ModeSelectionPanel extends JPanel {
                 super.paintComponent(g);
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Vẽ glow effect cho title
+              
                 int centerX = getWidth() / 2;
                 int centerY = getHeight() / 2;
                 
@@ -65,22 +64,18 @@ public class ModeSelectionPanel extends JPanel {
         
         add(titlePanel, BorderLayout.NORTH);
 
-        // ================== PANEL GIỮA: BẢNG + DECORATIONS ==================
         JPanel centerPanel = new JPanel(new BorderLayout(15, 15));
         centerPanel.setOpaque(false);
-        
-        // Container với glassmorphism
+
         JPanel glassContainer = new JPanel(new BorderLayout()) {
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 
-                // Glassmorphism background
                 g2d.setColor(new Color(255, 255, 255, 15));
                 g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 25, 25);
-                
-                // Border gradient
+               
                 GradientPaint border = new GradientPaint(
                     0, 0, new Color(255, 215, 0, 80),
                     getWidth(), getHeight(), new Color(138, 43, 226, 80)
@@ -93,7 +88,6 @@ public class ModeSelectionPanel extends JPanel {
         glassContainer.setOpaque(false);
         glassContainer.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // ================== BẢNG LEADERBOARD ==================
         String[] columnNames = {"HANG", "NGUOI CHOI", "DIEM"};
         tableModel = new DefaultTableModel(columnNames, 0);
         leaderboardTable = new JTable(tableModel);
@@ -110,8 +104,7 @@ public class ModeSelectionPanel extends JPanel {
         header.setBackground(new Color(30, 30, 50, 200));
         header.setForeground(new Color(255, 215, 0));
         header.setPreferredSize(new Dimension(header.getWidth(), 45));
-        
-        // Custom renderer với hiệu ứng đẹp
+     
         leaderboardTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             public Component getTableCellRendererComponent(JTable table, Object value,
                                                            boolean isSelected, boolean hasFocus,
@@ -122,8 +115,7 @@ public class ModeSelectionPanel extends JPanel {
                 label.setOpaque(true);
                 label.setHorizontalAlignment(SwingConstants.CENTER);
                 label.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-                
-                // Màu nền gradient cho từng hàng
+          
                 if (row == 0) {
                     label.setBackground(new Color(255, 215, 0, 50)); // Vàng
                     label.setForeground(new Color(255, 223, 0));
@@ -160,7 +152,6 @@ public class ModeSelectionPanel extends JPanel {
         centerPanel.add(glassContainer, BorderLayout.CENTER);
         add(centerPanel, BorderLayout.CENTER);
 
-        // ================== PANEL NÚT PHÍA DƯỚI ==================
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 25, 0));
         buttonPanel.setOpaque(false);
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 10, 0));
@@ -185,7 +176,6 @@ public class ModeSelectionPanel extends JPanel {
 
         add(buttonPanel, BorderLayout.SOUTH);
 
-        // ================== ANIMATION TIMER ==================
         initParticles();
         animationTimer = new Timer(50, new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -206,11 +196,9 @@ public class ModeSelectionPanel extends JPanel {
         });
         animationTimer.start();
 
-        // ================== LOAD LEADERBOARD ==================
         loadLeaderboard();
     }
 
-    // ====== TẠO NÚT HIỆN ĐẠI VỚI HIỆU ỨNG ======
     private JButton createModernButton(String text, final Color baseColor, final Color hoverColor) {
         JButton btn = new JButton(text) {
             private float hoverAmount = 0f;
@@ -247,11 +235,9 @@ public class ModeSelectionPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 
-                // Shadow
                 g2.setColor(new Color(0, 0, 0, 100));
                 g2.fillRoundRect(3, 5, getWidth() - 3, getHeight() - 3, 20, 20);
                 
-                // Button background với gradient
                 Color currentColor = interpolateColor(baseColor, hoverColor, hoverAmount);
                 GradientPaint gp = new GradientPaint(
                     0, 0, currentColor,
@@ -260,11 +246,9 @@ public class ModeSelectionPanel extends JPanel {
                 g2.setPaint(gp);
                 g2.fillRoundRect(0, 0, getWidth() - 3, getHeight() - 5, 20, 20);
                 
-                // Glossy highlight
                 g2.setColor(new Color(255, 255, 255, 60));
                 g2.fillRoundRect(5, 5, getWidth() - 13, getHeight() / 2 - 5, 15, 15);
                 
-                // Border
                 g2.setColor(new Color(255, 255, 255, 100));
                 g2.setStroke(new BasicStroke(2));
                 g2.drawRoundRect(1, 1, getWidth() - 5, getHeight() - 7, 20, 20);
@@ -293,7 +277,6 @@ public class ModeSelectionPanel extends JPanel {
         return new Color(r, g, b);
     }
 
-    // ====== PARTICLE SYSTEM ======
     private void initParticles() {
         for (int i = 0; i < 30; i++) {
             particles.add(new Particle());
@@ -340,7 +323,6 @@ public class ModeSelectionPanel extends JPanel {
         }
     }
 
-    // ====== LOAD LEADERBOARD ======
     private void loadLeaderboard() {
         if (client != null) {
             client.setLeaderboardCallback(new Client.LeaderboardCallback() {
@@ -380,13 +362,11 @@ public class ModeSelectionPanel extends JPanel {
         }
     }
 
-    // ====== NỀN ANIMATED GRADIENT ======
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-        // Multi-color gradient background
         GradientPaint gp = new GradientPaint(
             0, 0, new Color(20, 0, 40),
             getWidth(), getHeight(), new Color(60, 0, 100)
@@ -394,13 +374,11 @@ public class ModeSelectionPanel extends JPanel {
         g2d.setPaint(gp);
         g2d.fillRect(0, 0, getWidth(), getHeight());
         
-        // Draw particles
         for (int i = 0; i < particles.size(); i++) {
             particles.get(i).draw(g2d);
         }
     }
-    
-    // Cleanup timer khi panel bị remove
+   
     public void removeNotify() {
         super.removeNotify();
         if (animationTimer != null) {

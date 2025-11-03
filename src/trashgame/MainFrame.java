@@ -34,10 +34,9 @@ public class MainFrame extends JFrame {
         cardLayout = new CardLayout();
         cards = new JPanel(cardLayout);
 
-        // THÊM: Tạo Client trước (kết nối server, nếu lỗi dùng offline mode)
         client = null;
         try {
-            client = new Client("localhost", 12345);  // Hoặc IP server nếu remote
+            client = new Client("localhost", 12345);  
             System.out.println("✅ Kết nối client thành công");
         } catch (Exception e) {
             System.err.println("❌ Không kết nối được server, dùng offline mode");
@@ -45,27 +44,21 @@ public class MainFrame extends JFrame {
         }
         setClient(client);
 
-        // SỬA: Tạo loginPanel trước khi add vào cards
-        loginPanel = new LoginPanel(this, client);  // Pass Client cho server mode
+        loginPanel = new LoginPanel(this, client); 
 
-        // Khởi tạo các panel cơ bản khác
         modePanel = new ModeSelectionPanel(this);
         controlPanel = new ControlPanel(this);
 
-        // Add vào CardLayout (bây giờ loginPanel đã tồn tại)
         cards.add(loginPanel, CARD_LOGIN);
         cards.add(modePanel, CARD_MODE);
-        // roomPanel và gamePanel sẽ được tạo khi cần (tránh chạy ngầm)
         cards.add(controlPanel, CARD_CONTROL);
 
         add(cards);
         setVisible(true);
 
-        // mặc định hiển thị login
         cardLayout.show(cards, CARD_LOGIN);
     }
 
-    // --- setters/getters cho user và client (gọi từ LoginPanel khi login thành công) ---
     public void setCurrentUser(int user_id) {
         this.currentUserId = user_id;
     }
@@ -95,7 +88,6 @@ public class MainFrame extends JFrame {
         cardLayout.show(cards, CARD_MODE);
     }
 
-    // Hiển thị RoomOptions: tạo roomPanel khi cần (nếu có client & username dùng constructor nâng cao)
     public void showRoomOptions() {
         // remove cũ nếu có
         if (roomPanel != null) {
@@ -103,9 +95,9 @@ public class MainFrame extends JFrame {
             roomPanel = null;
         }
 
-        // Kiểm tra đã có client và user chưa
+
         if (client != null && currentUserId != 0 && currentUsername != null && !currentUsername.isEmpty()) {
-            // tạo RoomOptionsPanel với client (phải có client và user đã login)
+   
             roomPanel = new RoomOptionsPanel(this, client, currentUserId, currentUsername);
             cards.add(roomPanel, CARD_ROOM);
             cardLayout.show(cards, CARD_ROOM);
@@ -114,12 +106,12 @@ public class MainFrame extends JFrame {
                 roomPanel.loadPreviousRoom(currentRoomID);
             }
         } else {
-            // Nếu chưa login / chưa kết nối client thì thông báo hoặc chuyển về login
+           
             JOptionPane.showMessageDialog(this,
                     "Bạn phải đăng nhập và kết nối tới server trước khi vào phần tạo/tham gia phòng.",
                     "Chưa có kết nối",
                     JOptionPane.WARNING_MESSAGE);
-            // Optionally: show login card
+
             cardLayout.show(cards, CARD_LOGIN);
         }
     }
@@ -132,30 +124,27 @@ public class MainFrame extends JFrame {
     }
 
     public void startSinglePlayer() {
-        // Xoá GamePanel cũ nếu có (tránh add trùng)
+
         if (gamePanel != null) {
             gamePanel.cleanup();
             cards.remove(gamePanel);
             gamePanel = null;
         }
 
-        // Tạo GamePanel mới
         gamePanel = new GamePanel(this);
         cards.add(gamePanel, CARD_GAME);
 
-        // Hiển thị
         cardLayout.show(cards, CARD_GAME);
         gamePanel.requestFocusInWindow();
     }
 
-    // THÊM: Phương thức startMultiplayerGame (từ mã trước)
     public void startMultiplayerGame() {
         if (gamePanel != null) {
             gamePanel.cleanup();
             cards.remove(gamePanel);
             gamePanel = null;
         }
-        gamePanel = new GamePanel(this);  // GamePanel sẽ đăng ký listener tự động
+        gamePanel = new GamePanel(this);  
         cards.add(gamePanel, CARD_GAME);
         cardLayout.show(cards, CARD_GAME);
         gamePanel.requestFocusInWindow();
@@ -168,7 +157,7 @@ public class MainFrame extends JFrame {
             System.out.println("Gửi điểm " + finalScore + " lên server cho phòng " + currentRoomID);
         }
 
-        controlPanel.setScore(finalScore); // cập nhật điểm
+        controlPanel.setScore(finalScore); 
         cardLayout.show(cards, CARD_CONTROL);
         cards.revalidate();
         cards.repaint();

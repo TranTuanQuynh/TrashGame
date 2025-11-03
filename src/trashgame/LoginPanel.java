@@ -23,7 +23,7 @@ public class LoginPanel extends JPanel {
         this.frame = frame;
         this.client = client;
 
-        // Load ảnh (đặt trong resources hoặc cùng thư mục src)
+        // Load ảnh 
         try {
             backgroundImage = new ImageIcon("src/resources/background.png").getImage();
         } catch (Exception e) {
@@ -132,7 +132,6 @@ public class LoginPanel extends JPanel {
         });
     }
 
-    // === Logic login & register giữ nguyên ===
     private void doLogin() {
         String user = usernameField.getText().trim();
         String pass = new String(passwordField.getPassword()).trim();

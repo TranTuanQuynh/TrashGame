@@ -95,7 +95,6 @@ public class DBConnection {
 
     public static List<String[]> getLeaderboard() {
         List<String[]> data = new ArrayList<>();
-        // Sử dụng JOIN để lấy max score từ scores
         String sql = "SELECT u.username, COALESCE(MAX(s.score), 0) AS max_score " +
                      "FROM users u LEFT JOIN scores s ON u.id = s.user_id " +
                      "GROUP BY u.id, u.username " +
@@ -183,11 +182,9 @@ public class DBConnection {
                 }
                 System.out.println("User validation OK: userId=" + userId + " exists in database");
             }
-            
-            // Bat dau transaction
+
             conn.setAutoCommit(false);
             
-            // 1. Cap nhat diem trong room_players (neu co roomId)
             if (roomId != null && !roomId.trim().isEmpty()) {
                 String updateRoomSql = "UPDATE room_players SET score = ? WHERE room_id = ? AND user_id = ?";
                 try (PreparedStatement stmt = conn.prepareStatement(updateRoomSql)) {
@@ -203,7 +200,7 @@ public class DBConnection {
                 }
             }
             
-            // 2. Luu diem vao bang scores (play_time se tu dong dien NOW())
+            // 2. Luu diem vao bang scores 
             String insertScoreSql = "INSERT INTO scores (user_id, score, play_time) VALUES (?, ?, NOW())";
             try (PreparedStatement stmt = conn.prepareStatement(insertScoreSql)) {
                 stmt.setInt(1, userId);
@@ -216,7 +213,6 @@ public class DBConnection {
                 }
             }
             
-            // Commit transaction
             conn.commit();
             System.out.println("=== TRANSACTION COMMITTED === Score update completed for userId=" + userId + ", score=" + score);
             
@@ -227,8 +223,7 @@ public class DBConnection {
             System.err.println("score attempted: " + score);
             System.err.println("roomId attempted: " + (roomId == null ? "NULL" : roomId));
             e.printStackTrace();
-            
-            // Rollback neu co loi
+
             if (conn != null) {
                 try {
                     conn.rollback();
